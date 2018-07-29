@@ -154,11 +154,11 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             self.clear();
         }
 
-        pub fn empty(self: * const Self) bool {
+        pub fn empty(self: Self) bool {
             return self.root == null;
         }
 
-        pub fn count(self: * const Self) usize {
+        pub fn count(self: Self) usize {
             return self.size;
         }
 
@@ -215,7 +215,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             self.size += 1;
         }
 
-        pub fn findInsertionPoint(self: * const Self, key: Key) *Node {
+        pub fn findInsertionPoint(self: Self, key: Key) *Node {
             assert(!self.empty());
             var next = self.root;
             var node = next.?;
@@ -232,11 +232,11 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             return node;
         }
 
-        pub fn exists(self: * const Self, key: Key) bool {
+        pub fn exists(self: Self, key: Key) bool {
             return self.get(key) != null;
         }
 
-        pub fn get(self: * const Self, key: Key) ?*Value {
+        pub fn get(self: Self, key: Key) ?*Value {
             if (self.getNode(key)) |node|{
                 return &node.value;
             } else {
@@ -244,7 +244,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             }
         }
 
-        fn getNode(self: * const Self, key: Key) ?*Node {
+        fn getNode(self: Self, key: Key) ?*Node {
             if (self.empty()) return null;
             var node = self.root;
             while(node != null) {

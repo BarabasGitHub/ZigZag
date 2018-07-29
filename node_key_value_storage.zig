@@ -28,15 +28,15 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
             self.allocator.free(self.node_key_value_storage);
         }
 
-        pub fn empty(self: * const Self) bool {
+        pub fn empty(self: Self) bool {
             return self.size() == 0;
         }
 
-        pub fn size(self: * const Self) usize {
+        pub fn size(self: Self) usize {
             return self.storage_size;
         }
 
-        pub fn capacity(self: * const Self) usize {
+        pub fn capacity(self: Self) usize {
             return self.node_key_value_storage.len / (@sizeOf(Node) + @sizeOf(Key) + @sizeOf(Value));
         }
 
@@ -82,27 +82,27 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
             self.allocator.free(old_storage);
         }
 
-        pub fn nodes(self: * const Self) []Node {
+        pub fn nodes(self: Self) []Node {
             return @bytesToSlice(Node, self.node_key_value_storage[0..self.storage_size * @sizeOf(Node)]);
         }
 
-        pub fn nodeAt(self: * const Self, index: usize) Node {
+        pub fn nodeAt(self: Self, index: usize) Node {
             return self.nodes()[index];
         }
 
-        pub fn keys(self: * const Self) []Key {
+        pub fn keys(self: Self) []Key {
             return alignPointer(Key, self.node_key_value_storage.ptr + self.capacity() * @sizeOf(Node))[0..self.storage_size];
         }
 
-        pub fn keyAt(self: * const Self, index: usize) Key {
+        pub fn keyAt(self: Self, index: usize) Key {
             return self.keys()[index];
         }
 
-        pub fn values(self: * const Self) []Value {
+        pub fn values(self: Self) []Value {
             return alignPointer(Value, self.node_key_value_storage.ptr + self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + @alignOf(Key))[0..self.storage_size];
         }
 
-        pub fn valueAt(self: * const Self, index: usize) Value {
+        pub fn valueAt(self: Self, index: usize) Value {
             return self.values()[index];
         }
 

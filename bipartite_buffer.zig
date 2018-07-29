@@ -31,19 +31,19 @@ pub fn BipartiteBuffer() type {
             self.allocator.free(self.memory);
         }
 
-        pub fn size(self: * const Self) usize {
+        pub fn size(self: Self) usize {
             return self.primaryDataSize() + self.secondaryDataSize();
         }
 
-        pub fn empty(self: * const Self) bool {
+        pub fn empty(self: Self) bool {
             return self.primaryDataSize() == 0;
         }
 
-        pub fn capacity(self: * const Self) usize {
+        pub fn capacity(self: Self) usize {
             return self.memory.len;
         }
 
-        pub fn isFull(self: * const Self) bool {
+        pub fn isFull(self: Self) bool {
             return self.primaryDataSize() > 0 and self.secondaryDataSize() == self.primaryDataStart();
         }
 
@@ -70,7 +70,7 @@ pub fn BipartiteBuffer() type {
             self.reserved = []u8{};
         }
 
-        pub fn peek(self: * const Self) [] const u8 {
+        pub fn peek(self: Self) [] const u8 {
             return self.primaryDataSlice();
         }
 
@@ -108,35 +108,35 @@ pub fn BipartiteBuffer() type {
 
         // helper functions
 
-        inline fn secondaryDataSlice(self: * const Self) []u8 {
+        inline fn secondaryDataSlice(self: Self) []u8 {
             return self.memory[0..self.secondary_size];
         }
 
-        inline fn primaryDataSlice(self: * const Self) []u8 {
+        inline fn primaryDataSlice(self: Self) []u8 {
             return self.primary;
         }
 
-        inline fn primaryDataSize(self: * const Self) usize {
+        inline fn primaryDataSize(self: Self) usize {
             return self.primary.len;
         }
 
-        inline fn primaryDataStart(self: * const Self) usize {
+        inline fn primaryDataStart(self: Self) usize {
             return @ptrToInt(self.primary.ptr) - @ptrToInt(self.memory.ptr);
         }
 
-        inline fn primaryDataEnd(self: * const Self) usize {
+        inline fn primaryDataEnd(self: Self) usize {
             return self.primaryDataSize() + self.primaryDataStart();
         }
 
-        inline fn secondaryDataSize(self: * const Self) usize {
+        inline fn secondaryDataSize(self: Self) usize {
             return self.secondary_size;
         }
 
-        inline fn hasPrimaryExcessCapacity(self: * const Self, count: usize) bool {
+        inline fn hasPrimaryExcessCapacity(self: Self, count: usize) bool {
             return self.primaryDataEnd() + count <= self.memory.len;
         }
 
-        inline fn hasSecondaryExcessCapacity(self: * const Self, count: usize) bool {
+        inline fn hasSecondaryExcessCapacity(self: Self, count: usize) bool {
             return self.secondary_size + count <= self.primaryDataStart();
         }
     };

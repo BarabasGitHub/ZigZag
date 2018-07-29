@@ -83,16 +83,16 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             }
         };
 
-        inline fn isChild(self: * const Self, index: u64, leftRight: u1) bool {
+        inline fn isChild(self: Self, index: u64, leftRight: u1) bool {
             const headers = self.storage.nodes();
             return headers[index].parent != invalid_index and headers[headers[index].parent].children(leftRight).* == index;
         }
 
-        inline fn isLeftChild(self: * const Self, index: u64) bool {
+        inline fn isLeftChild(self: Self, index: u64) bool {
             return self.isChild(index, 0);
         }
 
-        inline fn isRightChild(self: * const Self, index: u64) bool {
+        inline fn isRightChild(self: Self, index: u64) bool {
             return self.isChild(index, 1);
         }
 
@@ -107,15 +107,15 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             self.storage.deinit();
         }
 
-        pub fn empty(self: * const Self) bool {
+        pub fn empty(self: Self) bool {
             return self.root == invalid_index;
         }
 
-        pub fn count(self: * const Self) usize {
+        pub fn count(self: Self) usize {
             return self.storage.size();
         }
 
-        pub fn capacity(self: * const Self) usize {
+        pub fn capacity(self: Self) usize {
             return self.storage.capacity();
         }
 
@@ -161,7 +161,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             }
         }
 
-        pub fn findInsertionPoint(self: * const Self, key: Key) u64 {
+        pub fn findInsertionPoint(self: Self, key: Key) u64 {
             assert(!self.empty());
             var keys = self.storage.keys();
             var headers = self.storage.nodes();
@@ -180,11 +180,11 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             return index;
         }
 
-        pub fn exists(self: * const Self, key: Key) bool {
+        pub fn exists(self: Self, key: Key) bool {
             return self.get(key) != null;
         }
 
-        pub fn get(self: * const Self, key: Key) ?*Value {
+        pub fn get(self: Self, key: Key) ?*Value {
             if (self.getIndex(key)) |i|{
                 return &self.storage.values()[i];
             } else {
@@ -192,7 +192,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             }
         }
 
-        fn getIndex(self: * const Self, key: Key) ?u64 {
+        fn getIndex(self: Self, key: Key) ?u64 {
             if (self.empty()) return null;
             const keys = self.storage.keys();
             const headers = self.storage.nodes();
@@ -320,7 +320,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             }
         }
 
-        fn successor(self: * const Self, index: u64) ?u64 {
+        fn successor(self: Self, index: u64) ?u64 {
             const headers = self.storage.nodes();
             var right = headers[index].right().*;
             if (right != invalid_index) {

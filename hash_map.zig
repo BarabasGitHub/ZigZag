@@ -49,16 +49,16 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             self.node_key_value_storage.clear();
         }
 
-        pub fn countElements(self: * const Self) usize {
+        pub fn countElements(self: Self) usize {
             // assuming there are less empty elements, count the emtpy ones.
             return self.node_key_value_storage.size() - self.countEmptyElements();
         }
 
-        pub fn empty(self: * const Self) bool {
+        pub fn empty(self: Self) bool {
             return self.node_key_value_storage.size() == self.countEmptyElements();
         }
 
-        pub fn countEmptyElements(self: * const Self) usize {
+        pub fn countEmptyElements(self: Self) usize {
             var i = self.empty_node;
             var count : usize = 0;
             const next = self.node_key_value_storage.nodes();
@@ -69,23 +69,23 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             return count;
         }
 
-        pub fn bucketCount(self: * const Self) usize {
+        pub fn bucketCount(self: Self) usize {
             return self.buckets.len;
         }
 
-        pub fn capacity(self: * const Self) usize {
+        pub fn capacity(self: Self) usize {
             return self.node_key_value_storage.capacity();
         }
 
-        pub fn loadFactor(self: * const Self) f32 {
+        pub fn loadFactor(self: Self) f32 {
             return @intToFloat(f32, self.countElements()) / @intToFloat(f32, self.bucketCount());
         }
 
-        pub fn hashValue(self: * const Self, key : Key) usize {
+        pub fn hashValue(self: Self, key : Key) usize {
             return hash_function(key);
         }
 
-        pub fn bucketIndex(self: * const Self, key : Key) usize {
+        pub fn bucketIndex(self: Self, key : Key) usize {
             return hash_function(key) % self.bucketCount();
         }
 
@@ -156,7 +156,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             }
         }
 
-        pub fn get(self: * const Self, key: Key) ?*Value {
+        pub fn get(self: Self, key: Key) ?*Value {
             if (self.keyIndex(key)) |index| {
                 return &self.node_key_value_storage.values()[index];
             } else {
@@ -164,7 +164,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             }
         }
 
-        pub fn exists(self: * const Self, key: Key) bool {
+        pub fn exists(self: Self, key: Key) bool {
             return self.keyIndex(key) != null;
         }
 
@@ -188,12 +188,12 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             }
         }
 
-        fn keyIndex(self: * const Self, key_in: Key) ?usize {
+        fn keyIndex(self: Self, key_in: Key) ?usize {
             const bucket_index = self.bucketIndex(key_in);
             return self.keyIndexFromBucketIndex(key_in, bucket_index);
         }
 
-        fn keyIndexFromBucketIndex(self: * const Self, key_in: Key, bucket_index: usize) ?usize {
+        fn keyIndexFromBucketIndex(self: Self, key_in: Key, bucket_index: usize) ?usize {
             var bucket_keys = self.bucketKeys(bucket_index);
             var index = bucket_keys.index;
             while (bucket_keys.next()) |key| : (index = bucket_keys.index) {
@@ -202,7 +202,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             return null;
         }
 
-        fn bucketKeys(self: * const Self, index: usize) KeyBucketIterator {
+        fn bucketKeys(self: Self, index: usize) KeyBucketIterator {
             return KeyBucketIterator{
                 .index = self.buckets[index],
                 .nextNodes = self.node_key_value_storage.nodes(),
