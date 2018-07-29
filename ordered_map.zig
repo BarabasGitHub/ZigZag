@@ -163,7 +163,29 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         }
 
         pub fn clear(self: * Self) void {
-            // TODO
+            var next = self.root;
+            while(next != null) {
+                var node = next.?;
+                // go down, first left then right
+                while(next != null) {
+                    node = next.?;
+                    // find the leftmost node
+                    node = node.allTheWayLeft();
+                    // try to go right if we can't go left anymore
+                    next = node.right_child;
+                }
+                // we should be at a leaf
+                assert(!node.hasLeftChild() and !node.hasRightChild());
+                // go up
+                next = node.parent;
+                // detach the node from it's parent
+                if (next != null) {
+                    if (next.?.left_child == node) next.?.left_child = null;
+                    if (next.?.right_child == node) next.?.right_child = null;
+                }
+                // destroy the node
+                self.allocator.destroy(node);
+            }
             self.root = null;
             self.size = 0;
         }
