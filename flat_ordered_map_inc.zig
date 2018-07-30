@@ -83,16 +83,16 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
             }
         };
 
-        inline fn isChild(self: Self, index: u63, leftRight: u1) bool {
+        fn isChild(self: Self, index: u63, leftRight: u1) bool {
             const headers = self.storage.nodes();
             return headers[addIncrement(index, headers[index].parent)].children(leftRight).* == -headers[index].parent;
         }
 
-        inline fn isLeftChild(self: Self, index: u63) bool {
+        fn isLeftChild(self: Self, index: u63) bool {
             return self.isChild(index, 0);
         }
 
-        inline fn isRightChild(self: Self, index: u63) bool {
+        fn isRightChild(self: Self, index: u63) bool {
             return self.isChild(index, 1);
         }
 

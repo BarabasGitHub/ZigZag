@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
-inline fn swapRange(comptime T: type, data1: []T , data2: []T) void{
+fn swapRange(comptime T: type, data1: []T , data2: []T) void{
     assert(data1.len == data2.len);
     for (data1) |*value1, i| {
       std.mem.swap(T, value1, &data2[i]);

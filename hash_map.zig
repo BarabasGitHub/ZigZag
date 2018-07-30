@@ -225,11 +225,11 @@ fn asByteSlice(x: var) []const u8 {
     return @sliceToBytes(([]const T{x})[0..1]);
 }
 
-inline fn test_hash(f : f64) usize {
-    return hf.BytestreamHash(@inlineCall(asByteSlice, f), 32426578264);
+fn test_hash(f : f64) usize {
+    return hf.BytestreamHash(asByteSlice(f), 32426578264);
 }
 
-inline fn test_equals(a : f64, b : f64) bool {
+fn test_equals(a : f64, b : f64) bool {
     return a == b;
 }
 

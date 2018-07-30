@@ -108,35 +108,35 @@ pub fn BipartiteBuffer() type {
 
         // helper functions
 
-        inline fn secondaryDataSlice(self: Self) []u8 {
+        fn secondaryDataSlice(self: Self) []u8 {
             return self.memory[0..self.secondary_size];
         }
 
-        inline fn primaryDataSlice(self: Self) []u8 {
+        fn primaryDataSlice(self: Self) []u8 {
             return self.primary;
         }
 
-        inline fn primaryDataSize(self: Self) usize {
+        fn primaryDataSize(self: Self) usize {
             return self.primary.len;
         }
 
-        inline fn primaryDataStart(self: Self) usize {
+        fn primaryDataStart(self: Self) usize {
             return @ptrToInt(self.primary.ptr) - @ptrToInt(self.memory.ptr);
         }
 
-        inline fn primaryDataEnd(self: Self) usize {
+        fn primaryDataEnd(self: Self) usize {
             return self.primaryDataSize() + self.primaryDataStart();
         }
 
-        inline fn secondaryDataSize(self: Self) usize {
+        fn secondaryDataSize(self: Self) usize {
             return self.secondary_size;
         }
 
-        inline fn hasPrimaryExcessCapacity(self: Self, count: usize) bool {
+        fn hasPrimaryExcessCapacity(self: Self, count: usize) bool {
             return self.primaryDataEnd() + count <= self.memory.len;
         }
 
-        inline fn hasSecondaryExcessCapacity(self: Self, count: usize) bool {
+        fn hasSecondaryExcessCapacity(self: Self, count: usize) bool {
             return self.secondary_size + count <= self.primaryDataStart();
         }
     };
@@ -191,7 +191,7 @@ fn createTestMessages(comptime message_count : usize) [message_count]TestMessage
 }
 
 
-inline fn asByteSlice(x: var) []const u8 {
+fn asByteSlice(x: var) []const u8 {
     const T = @typeOf(x);
     return @sliceToBytes(([]const T{x})[0..1]);
 }
