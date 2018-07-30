@@ -1,4 +1,4 @@
-const hf = @import("hash_functions.zig");
+const hf = @import("../algorithms/hash_functions.zig");
 const nkv = @import("node_key_value_storage.zig");
 const std = @import("std");
 const debug = std.debug;
