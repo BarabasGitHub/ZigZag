@@ -226,7 +226,7 @@ fn asByteSlice(x: var) []const u8 {
 }
 
 fn test_hash(f : f64) usize {
-    return hf.BytestreamHash(asByteSlice(f), 32426578264);
+    return hf.bytestreamHash(asByteSlice(f), 32426578264);
 }
 
 fn test_equals(a : f64, b : f64) bool {
