@@ -46,7 +46,7 @@ fn hash64To64(seed : u64, data : u64) u64 {
 }
 
 fn hash32To64(seed : u64, data : u32) u32 {
-    // this apparently need some extra mixing, used the same tactic as with 64 bit mix
+    // This apparently need some extra mixing, used the same tactic as with 64 bit mix
     // return finalizeHashTo64(seed, Mix(data) * spreadNumber(@typeOf(data)));
     return finalizeHashTo64(seed, u64(data) *% spreadNumber(@typeOf(data)));
 }
@@ -184,6 +184,7 @@ test "murBasHash" {
 test "bytestreamHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
     assert(bytestreamHash(string, 42) != 0);
+    assert(bytestreamHash(string, 42) == 1641407811188335103);
 }
 
 test "shortHash" {

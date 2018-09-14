@@ -13,7 +13,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         column_count: u32,
         sorted: bool, // indicates whether this matrix is in sorted form or not
 
-        const Self = this;
+        const Self = @This();
 
         pub fn init(allocator: *Allocator, rows: u32, columns: u32, elements: u32) !Self {
             var self = Self {

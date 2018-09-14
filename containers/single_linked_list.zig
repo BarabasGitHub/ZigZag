@@ -7,7 +7,7 @@ pub fn SingleLinkedList(comptime Value: type) type {
     return struct {
         head: ?*Node,
         allocator: *Allocator,
-        const Self = this;
+        const Self = @This();
 
         const Node = struct {
             value: Value,

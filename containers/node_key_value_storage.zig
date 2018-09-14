@@ -13,7 +13,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         storage_size : usize,
         allocator : *Allocator,
 
-        const Self = this;
+        const Self = @This();
 
         pub fn init(allocator: *Allocator) Self {
             //debug.warn("Alignement of storage is {}", usize(@alignOf(Node)));

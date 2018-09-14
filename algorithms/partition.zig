@@ -111,7 +111,7 @@ pub fn partition3(
     data: []T,
     pivot: T,
     less: fn(a: T, b: T) bool) Pair() {
-    // this is mostly faster than a separate implementation for this Partition3 functionality.
+    // This is mostly faster than a separate implementation for this Partition3 functionality.
     return dualPivotPartition(T, data, pivot, pivot, less);
 }
 

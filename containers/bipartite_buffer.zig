@@ -12,7 +12,7 @@ pub fn BipartiteBuffer() type {
         reading_size : usize,
         allocator : *Allocator,
 
-        const Self = this;
+        const Self = @This();
 
         pub fn init(allocator: *Allocator, start_capacity : usize) !Self {
             var self = Self{

@@ -7,7 +7,7 @@ pub fn BatchedFloat2(comptime BatchSize: usize) type {
         y: ArrayType,
 
         pub const ArrayType = [BatchSize]f32;
-        const Self = this;
+        const Self = @This();
 
         pub fn zeroInit() Self {
             return uniformInit(0);

@@ -23,7 +23,7 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
         storage: NodeKeyValueStorage(Header, Key, Value),
         root: u63,
 
-        const Self = this;
+        const Self = @This();
 
         pub const Iterator = struct {
 

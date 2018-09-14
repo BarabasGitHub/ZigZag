@@ -2,7 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
 
-// this is not really statistics related, but ehh... we need it and I don't know where else to put it for now
+// This is not really statistics related, but ehh... we need it and I don't know where else to put it for now
 fn dotProduct(comptime T: type, a: []const T, b: []const T) T {
     assert(a.len == b.len);
     var s = T(0);
@@ -48,10 +48,12 @@ fn lengthOfType(comptime Type: type, input: []const Type) Type {
 }
 
 test "dotProduct" {
-    const a = []f32{1, 2, 3};
-    const b = []f32{3, 4, 5};
-    const c = dotProduct(f32, a, b);
-    assert(c == 3 + 8 + 15);
+    inline for ([]type{f16, f32}) |t| {
+        const a = []t{1, 2, 3};
+        const b = []t{3, 4, 5};
+        const c = dotProduct(t, a, b);
+        assert(c == 3 + 8 + 15);
+    }
 }
 
 test "sum" {

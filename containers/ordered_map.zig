@@ -85,7 +85,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         size: usize,
         allocator: *Allocator,
 
-        const Self = this;
+        const Self = @This();
 
         pub const Iterator = struct {
 

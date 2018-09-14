@@ -73,7 +73,7 @@ fn interleaveFloat(comptime BatchSize: usize, x: [BatchSize]f32, y: [BatchSize]f
 }
 
 fn getHashValue(comptime BatchSize: usize, f: BatchedFloat2(BatchSize), seed: usize) [BatchSize]u32 {
-    @setFloatMode(this, @import("builtin").FloatMode.Strict);
+    @setFloatMode(@This(), @import("builtin").FloatMode.Strict);
     const value = f.add(BatchedFloat2(BatchSize).zeroInit());
     const abcd = interleaveFloat(BatchSize, f.x, f.y);
     var r: [BatchSize]u32 = undefined;

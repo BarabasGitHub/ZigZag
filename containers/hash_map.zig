@@ -10,7 +10,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         buckets : []usize,
         empty_node : usize,
         node_key_value_storage : nkv.NodeKeyValueStorage(usize, Key, Value),
-        const Self = this;
+        const Self = @This();
 
         pub const KeyBucketIterator = struct {
             index : usize,
