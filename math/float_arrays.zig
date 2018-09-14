@@ -25,7 +25,7 @@ pub fn multiply(comptime N: usize, a: [N]f32, b: [N]f32) [N]f32 {
 }
 
 pub fn multiplyAdd(comptime N: usize, a: [N]f32, b: [N]f32, c: [N]f32) [N]f32 {
-    @setFloatMode(@This(), @import("builtin").FloatMode.Optimized);
+    @setFloatMode(@import("builtin").FloatMode.Optimized);
     var r: [N]f32 = undefined;
     for (a)|e,i| {
         r[i] = e * b[i] + c[i];
