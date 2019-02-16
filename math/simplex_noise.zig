@@ -2,7 +2,7 @@ const std = @import("std");
 const fa = @import("float_arrays.zig");
 const BatchedFloat2 = @import("batched_float2.zig").BatchedFloat2;
 const hf = @import("../algorithms/hash_functions.zig");
-const assert = std.debug.assert;
+const testing = std.testing;
 
 
 fn skewFactor(comptime N: usize) f32 {
@@ -150,7 +150,7 @@ pub fn simplexNoise2D(comptime BatchSize: usize, position: BatchedFloat2(BatchSi
        gradient_out_value.* = gradient_out_value.multiply(BatchedFloat2(BatchSize).arrayInit(scale));
     }
     value = fa.multiply(BatchSize, value, scale);
-    //assert(-1 <= value and value <= 1);
+    //testing.expect(-1 <= value and value <= 1);
     return value;
 }
 
@@ -179,10 +179,10 @@ fn testSimplex(comptime BatchSize: usize) void {
             const r = simplexNoise2D(BatchSize, position, &gradient, seed);
             //std.debug.warn("Value: {} Gradient: x: {} y: {}\n", r[0], gradient.x[0], gradient.y[0]);
             for (r) |f| {
-                assert(-1 < f);
-                assert(f <= 1);
+                testing.expect(-1 < f);
+                testing.expect(f <= 1);
                 //std.debug.warn("Calculated: {}, expected: {}\n", f, expected_values[@floatToInt(usize, x) - 1][@floatToInt(usize, y) - 1]);
-                assert(std.math.approxEq(f32, f, expected_values[@floatToInt(usize, x) - 1][@floatToInt(usize, y) - 1], epsilon));
+                testing.expect(std.math.approxEq(f32, f, expected_values[@floatToInt(usize, x) - 1][@floatToInt(usize, y) - 1], epsilon));
             }
         }
     }

@@ -1,6 +1,6 @@
 const std = @import("std");
 const debug = std.debug;
-const assert = debug.assert;
+const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 pub fn BipartiteBuffer() type {
@@ -64,7 +64,7 @@ pub fn BipartiteBuffer() type {
             if (self.reserved.ptr == self.primary.ptr + self.primary.len) {
                 self.primary = self.memory[self.primaryDataStart()..self.primaryDataEnd() + count];
             } else {
-                assert(self.memory.ptr + self.secondaryDataSize() == self.reserved.ptr);
+                testing.expect(self.memory.ptr + self.secondaryDataSize() == self.reserved.ptr);
                 self.secondary_size += count;
             }
             self.reserved = []u8{};
@@ -164,13 +164,13 @@ test "initialized BipartiteBuffer state" {
     var buffer = try BipartiteBuffer().init(debug.global_allocator, capacity);
     defer buffer.deinit();
 
-    assert(buffer.empty());
-    assert(!buffer.isFull());
-    assert(buffer.size() == 0);
-    assert(buffer.capacity() == capacity);
-    assert(buffer.reserved.len == 0);
-    assert(buffer.peek().len == 0);
-    assert(buffer.readBlock().len == 0);
+    testing.expect(buffer.empty());
+    testing.expect(!buffer.isFull());
+    testing.expect(buffer.size() == 0);
+    testing.expect(buffer.capacity() == capacity);
+    testing.expect(buffer.reserved.len == 0);
+    testing.expect(buffer.peek().len == 0);
+    testing.expect(buffer.readBlock().len == 0);
 }
 
 const TestMessage = packed struct {
@@ -207,45 +207,45 @@ test "fill and drain BipartiteBuffer" {
     // first put a few messages in
     for (test_messages[0..message_count/4]) |test_message, i| {
         var reserved = try buffer.reserve(message_size);
-        assert(reserved.len >= message_size);
-        assert(reserved.ptr == buffer.reserved.ptr);
-        assert(reserved.len == buffer.reserved.len);
+        testing.expect(reserved.len >= message_size);
+        testing.expect(reserved.ptr == buffer.reserved.ptr);
+        testing.expect(reserved.len == buffer.reserved.len);
         std.mem.copy(u8, reserved[0..message_size], asByteSlice(test_message));
         try buffer.commit(message_size);
-        assert(buffer.size() == message_size * (i + 1));
+        testing.expect(buffer.size() == message_size * (i + 1));
     }
     // then put and pull out at the same time
     for (test_messages[message_count/4..]) |test_message, i| {
         var reserved = try buffer.reserve(message_size);
-        assert(reserved.len >= message_size);
-        assert(reserved.ptr == buffer.reserved.ptr);
-        assert(reserved.len == buffer.reserved.len);
+        testing.expect(reserved.len >= message_size);
+        testing.expect(reserved.ptr == buffer.reserved.ptr);
+        testing.expect(reserved.len == buffer.reserved.len);
         std.mem.copy(u8, reserved[0..message_size], asByteSlice(test_message));
         try buffer.commit(message_size);
-        assert(buffer.size() == message_size * (message_count/4 + 1));
+        testing.expect(buffer.size() == message_size * (message_count/4 + 1));
 
         var peek = buffer.peek();
-        assert(peek.len >= message_size);
-        assert(std.mem.eql(u8, peek[0..message_size], asByteSlice(test_messages[i])));
+        testing.expect(peek.len >= message_size);
+        testing.expect(std.mem.eql(u8, peek[0..message_size], asByteSlice(test_messages[i])));
         var block = buffer.readBlock();
-        assert(block.len >= message_size);
-        assert(std.mem.eql(u8, block[0..message_size], asByteSlice(test_messages[i])));
+        testing.expect(block.len >= message_size);
+        testing.expect(std.mem.eql(u8, block[0..message_size], asByteSlice(test_messages[i])));
         try buffer.release(message_size);
-        assert(buffer.size() == message_size * (message_count/4));
+        testing.expect(buffer.size() == message_size * (message_count/4));
     }
     // then pull out the last messages
     for (test_messages[message_count-message_count/4..]) |test_message, i| {
         var peek = buffer.peek();
-        assert(peek.len >= message_size);
-        assert(std.mem.eql(u8, peek[0..message_size], asByteSlice(test_message)));
+        testing.expect(peek.len >= message_size);
+        testing.expect(std.mem.eql(u8, peek[0..message_size], asByteSlice(test_message)));
         var block = buffer.readBlock();
-        assert(block.len >= message_size);
-        assert(std.mem.eql(u8, block[0..message_size], asByteSlice(test_message)));
+        testing.expect(block.len >= message_size);
+        testing.expect(std.mem.eql(u8, block[0..message_size], asByteSlice(test_message)));
         try buffer.release(message_size);
-        assert(buffer.size() == message_size * (message_count/4 - i - 1));
+        testing.expect(buffer.size() == message_size * (message_count/4 - i - 1));
     }
-    assert(buffer.empty());
-    assert(buffer.size() == 0);
+    testing.expect(buffer.empty());
+    testing.expect(buffer.size() == 0);
 }
 
 test "discard data" {
@@ -254,13 +254,13 @@ test "discard data" {
 
     _ = try buffer.reserve(50);
     try buffer.commit(50);
-    assert(buffer.size() == 50);
+    testing.expect(buffer.size() == 50);
     try buffer.discard(30);
-    assert(buffer.size() == 20);
-    buffer.discard(30) catch |err| assert(err == BufferDiscardError.DiscardingMoreThanAvailable);
-    assert(!buffer.empty());
+    testing.expect(buffer.size() == 20);
+    buffer.discard(30) catch |err| testing.expect(err == BufferDiscardError.DiscardingMoreThanAvailable);
+    testing.expect(!buffer.empty());
     buffer.discardAll();
-    assert(buffer.empty());
+    testing.expect(buffer.empty());
 }
 
 test "release data" {
@@ -269,9 +269,9 @@ test "release data" {
 
     _ = try buffer.reserve(50);
     try buffer.commit(50);
-    assert(buffer.size() == 50);
-    buffer.release(30) catch |err| assert(err == BufferReleaseError.ReleasingMoreThanRead);
+    testing.expect(buffer.size() == 50);
+    buffer.release(30) catch |err| testing.expect(err == BufferReleaseError.ReleasingMoreThanRead);
     _ = buffer.readBlock();
     try buffer.release(30);
-    assert(buffer.size() == 20);
+    testing.expect(buffer.size() == 20);
 }

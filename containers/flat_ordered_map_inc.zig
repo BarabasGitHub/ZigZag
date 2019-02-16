@@ -1,7 +1,7 @@
 const NodeKeyValueStorage = @import("node_key_value_storage.zig").NodeKeyValueStorage;
 const std = @import("std");
 const debug = std.debug;
-const assert = debug.assert;
+const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 
@@ -71,7 +71,7 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
                         self.index = addIncrement(self.index.?, headers[self.index.?].parent);
                         self.origin = Origin.Left;
                     } else {
-                        assert(self.container.isRightChild(self.index.?));
+                        testing.expect(self.container.isRightChild(self.index.?));
                         self.index = addIncrement(self.index.?, headers[self.index.?].parent);
                         self.origin = Origin.Right;
                         _ = self.next();
@@ -162,7 +162,7 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
         }
 
         pub fn findInsertionPoint(self: Self, key: Key) u63 {
-            assert(!self.empty());
+            testing.expect(!self.empty());
             var keys = self.storage.keys();
             var headers = self.storage.nodes();
             var index = self.root - 1;
@@ -233,8 +233,8 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
                 const successor_increment = self.successorIncrement(index);
                 var successor_index = addIncrement(index, successor_increment);
                 if (successor_increment != invalid_increment) {
-                    assert(successor_index != index);
-                    assert(headers[successor_index].left().* == invalid_increment);
+                    testing.expect(successor_index != index);
+                    testing.expect(headers[successor_index].left().* == invalid_increment);
                     const keys = self.storage.keys();
                     const values = self.storage.values();
                     keys[index] = keys[successor_index];
@@ -248,7 +248,7 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
 
 
                 // Node is a external index with no successor, so assign the left index to the parent
-                assert(headers[index].right().* == invalid_increment);
+                testing.expect(headers[index].right().* == invalid_increment);
                 const parent_increment = headers[index].parent;
                 var parent_index = addIncrement(index, parent_increment);
                 if (parent_increment != invalid_increment)
@@ -273,7 +273,7 @@ pub fn FlatOrderedMapInc(comptime Key: type, comptime Value: type, comptime less
                 {
                     const last_index = @intCast(u63, self.storage.size() - 1);
                     if (last_index != index) {
-                        assert(index < self.storage.size());
+                        testing.expect(index < self.storage.size());
                         var header = self.storage.nodes()[last_index];
                         // fix the parent of the children
                         comptime var i = 0;
@@ -439,9 +439,9 @@ test "FlatOrderedMapInc initialization" {
     var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(container.empty());
-    assert(container.count() == 0);
-    assert(container.capacity() == 0);
+    testing.expect(container.empty());
+    testing.expect(container.count() == 0);
+    testing.expect(container.capacity() == 0);
 }
 
 test "FlatOrderedMapInc insert" {
@@ -449,12 +449,12 @@ test "FlatOrderedMapInc insert" {
     defer container.deinit();
 
     try container.insert(2, 1.5);
-    assert(container.count() == 1);
-    assert(!container.empty());
+    testing.expect(container.count() == 1);
+    testing.expect(!container.empty());
     try container.insert(3, 2.5);
-    assert(container.count() == 2);
-    assert(!container.empty());
-    debug.assertError(container.insert(2, 3.0), error.KeyAlreadyExists);
+    testing.expect(container.count() == 2);
+    testing.expect(!container.empty());
+    testing.expectError(error.KeyAlreadyExists, container.insert(2, 3.0));
 }
 
 test "FlatOrderedMapInc clear" {
@@ -464,52 +464,52 @@ test "FlatOrderedMapInc clear" {
     try container.insert(2, 1.5);
     try container.insert(3, 1.5);
     try container.insert(4, 1.5);
-    assert(!container.empty());
-    assert(container.count() != 0);
-    assert(container.capacity() > 0);
+    testing.expect(!container.empty());
+    testing.expect(container.count() != 0);
+    testing.expect(container.capacity() > 0);
     const old_capacity = container.capacity();
     container.clear();
-    assert(container.empty());
-    assert(container.count() == 0);
-    assert(container.capacity() == old_capacity);
+    testing.expect(container.empty());
+    testing.expect(container.count() == 0);
+    testing.expect(container.capacity() == old_capacity);
 }
 
 test "FlatOrderedMapInc exists" {
     var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(!container.exists(2));
+    testing.expect(!container.exists(2));
     try container.insert(2, 1.5);
-    assert(container.exists(2));
-    assert(!container.exists(1));
+    testing.expect(container.exists(2));
+    testing.expect(!container.exists(1));
 }
 
 test "FlatOrderedMapInc get" {
     var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(container.get(2) == null);
+    testing.expect(container.get(2) == null);
     try container.insert(2, 1.5);
     try container.insert(3, 2.5);
-    assert(container.get(2).?.* == 1.5);
-    assert(container.get(3).?.* == 2.5);
+    testing.expect(container.get(2).?.* == 1.5);
+    testing.expect(container.get(3).?.* == 2.5);
 }
 
 test "FlatOrderedMapInc ensure capacity" {
     var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(container.capacity() == 0);
+    testing.expect(container.capacity() == 0);
     try container.ensureCapacity(10);
-    assert(container.capacity() == 10);
+    testing.expect(container.capacity() == 10);
     try container.ensureCapacity(2);
-    assert(container.capacity() == 10);
+    testing.expect(container.capacity() == 10);
     try container.insert(2, 1.5);
     try container.insert(3, 2.5);
     try container.ensureCapacity(20);
-    assert(container.capacity() == 20);
-    assert(container.get(2).?.* == 1.5);
-    assert(container.get(3).?.* == 2.5);
+    testing.expect(container.capacity() == 20);
+    testing.expect(container.get(2).?.* == 1.5);
+    testing.expect(container.get(3).?.* == 2.5);
 }
 
 test "FlatOrderedMapInc Iterator" {
@@ -518,9 +518,9 @@ test "FlatOrderedMapInc Iterator" {
 
     {
         var iterator = container.iterator();
-        assert(iterator.current() == null);
-        assert(iterator.next() == null);
-        assert(iterator.next() == null);
+        testing.expect(iterator.current() == null);
+        testing.expect(iterator.next() == null);
+        testing.expect(iterator.next() == null);
     }
 
     const keys = []u32{2, 3, 1};
@@ -535,10 +535,10 @@ test "FlatOrderedMapInc Iterator" {
     var iterator = container.iterator();
     var i = u32(0);
     while (iterator.next()) |next| : (i += 1) {
-        assert(next.key() == ordered_keys[i]);
-        assert(next.value() == ordered_values[i]);
+        testing.expect(next.key() == ordered_keys[i]);
+        testing.expect(next.value() == ordered_values[i]);
     }
-    assert(i == container.count());
+    testing.expect(i == container.count());
 
     //debug.warn("Header is {} bytes\n", usize(@sizeOf(FlatOrderedMapInc(u32,u32,less_u32).Header)));
 }
@@ -551,15 +551,15 @@ test "FlatOrderedMapInc remove" {
     try container.insert(3, 1.5);
     try container.insert(4, 1.5);
 
-    assert(container.exists(3));
-    assert(container.remove(3));
-    assert(!container.exists(3));
+    testing.expect(container.exists(3));
+    testing.expect(container.remove(3));
+    testing.expect(!container.exists(3));
 
-    assert(container.exists(4));
-    assert(container.remove(4));
-    assert(!container.exists(4));
+    testing.expect(container.exists(4));
+    testing.expect(container.remove(4));
+    testing.expect(!container.exists(4));
 
-    assert(container.count() == 1);
+    testing.expect(container.count() == 1);
 }
 
 test "FlatOrderedMapInc insert remove many" {
@@ -579,9 +579,9 @@ test "FlatOrderedMapInc insert remove many" {
         try container.insert(key, 1.5);
     }
     for (keys) |key| {
-        assert(container.remove(key));
+        testing.expect(container.remove(key));
     }
-    assert(container.empty());
+    testing.expect(container.empty());
 }
 
 fn levelsOk(flatMap: var, index: u63) bool {
@@ -626,6 +626,6 @@ test "FlatOrderedMapInc levels" {
 
     var iterator = container.iterator();
     while (iterator.next()) |next| {
-        assert(levelsOk(container, next.index));
+        testing.expect(levelsOk(container, next.index));
     }
 }

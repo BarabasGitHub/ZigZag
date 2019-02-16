@@ -1,6 +1,6 @@
 const std = @import("std");
 const debug = std.debug;
-const assert = debug.assert;
+const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 pub fn SingleLinkedList(comptime Value: type) type {
@@ -57,11 +57,14 @@ pub fn SingleLinkedList(comptime Value: type) type {
         }
 
         pub fn prepend(self: * Self, value: Value) !void {
-            self.head = try self.allocator.create(Node{.value = value, .next = self.head});
+            var new_node = try self.allocator.create(Node);
+            new_node.value = value;
+            new_node.next = self.head;
+            self.head = new_node;
         }
 
         pub fn front(self: Self) *Value {
-            assert(self.head != null);
+            testing.expect(self.head != null);
             return &self.head.?.value;
         }
 
@@ -73,7 +76,10 @@ pub fn SingleLinkedList(comptime Value: type) type {
         }
 
         pub fn insert(self: Self, node: * Node, value: Value) !void {
-            node.next = try self.allocator.create(Node{.value = value, .next = node.next});
+            var new_node = try self.allocator.create(Node);
+            new_node.value = value;
+            new_node.next = node.next;
+            node.next = new_node;
         }
 
         pub fn iterator(self: *const Self) Iterator {
@@ -121,8 +127,8 @@ test "SingleLinkedList initialization" {
     var container = SingleLinkedList(u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(container.empty());
-    assert(container.count() == 0);
+    testing.expect(container.empty());
+    testing.expect(container.count() == 0);
 }
 
 test "SingleLinkedList prepend" {
@@ -131,7 +137,7 @@ test "SingleLinkedList prepend" {
 
     try container.prepend(1);
     try container.prepend(2);
-    assert(container.count() == 2);
+    testing.expect(container.count() == 2);
 }
 
 test "SingleLinkedList front" {
@@ -139,9 +145,9 @@ test "SingleLinkedList front" {
     defer container.deinit();
 
     try container.prepend(1);
-    assert(container.front().* == 1);
+    testing.expect(container.front().* == 1);
     try container.prepend(2);
-    assert(container.front().* == 2);
+    testing.expect(container.front().* == 2);
 }
 
 test "SingleLinkedList popFront" {
@@ -151,7 +157,7 @@ test "SingleLinkedList popFront" {
     try container.prepend(1);
     try container.prepend(2);
     container.popFront();
-    assert(container.front().* == 1);
+    testing.expect(container.front().* == 1);
 }
 
 test "SingleLinkedList iterate" {
@@ -159,7 +165,7 @@ test "SingleLinkedList iterate" {
     defer container.deinit();
 
     var empty_iter = container.iterator();
-    assert(empty_iter.next() == null);
+    testing.expect(empty_iter.next() == null);
 
     try container.prepend(3);
     try container.prepend(2);
@@ -168,7 +174,7 @@ test "SingleLinkedList iterate" {
     var iter = container.iterator();
     var expected = u32(1);
     while (iter.next()) |value| {
-        assert(value.* == expected);
+        testing.expect(value.* == expected);
         expected += 1;
     }
 }
@@ -180,11 +186,11 @@ test "SingleLinkedList insert" {
     try container.prepend(3);
     var iter = container.iterator();
     try container.insert(iter.node.?, 4);
-    assert(iter.next().?.* == 3);
+    testing.expect(iter.next().?.* == 3);
     try container.insert(iter.node.?, 5);
-    assert(iter.next().?.* == 4);
-    assert(iter.next().?.* == 5);
-    assert(iter.next() == null);
+    testing.expect(iter.next().?.* == 4);
+    testing.expect(iter.next().?.* == 5);
+    testing.expect(iter.next() == null);
 }
 
 test "SingleLinkedList clear" {
@@ -196,8 +202,8 @@ test "SingleLinkedList clear" {
     try container.prepend(1);
 
     container.clear();
-    assert(container.empty());
-    assert(container.count() == 0);
+    testing.expect(container.empty());
+    testing.expect(container.count() == 0);
 }
 
 test "SingleLinkedList removeAfter" {
@@ -211,8 +217,8 @@ test "SingleLinkedList removeAfter" {
     var iter = container.iterator();
     container.removeAfter(iter.node.?);
     iter = container.iterator();
-    assert(iter.next().?.* == 1);
-    assert(iter.next().?.* == 3);
+    testing.expect(iter.next().?.* == 1);
+    testing.expect(iter.next().?.* == 3);
 }
 
 test "SingleLinkedList splitAfter" {
@@ -230,12 +236,12 @@ test "SingleLinkedList splitAfter" {
     iter = container.iterator();
     var expected = u32(0);
     while(iter.next()) |value| {
-        assert(value.* == expected);
+        testing.expect(value.* == expected);
         expected += 1;
     }
     iter = container2.iterator();
     while(iter.next()) |value| {
-        assert(value.* == expected);
+        testing.expect(value.* == expected);
         expected += 1;
     }
 }
@@ -250,7 +256,7 @@ test "SingleLinkedList reverse" {
 
     container.reverse();
     var iter = container.iterator();
-    assert(iter.next().?.* == 1);
-    assert(iter.next().?.* == 2);
-    assert(iter.next().?.* == 3);
+    testing.expect(iter.next().?.* == 1);
+    testing.expect(iter.next().?.* == 2);
+    testing.expect(iter.next().?.* == 3);
 }

@@ -1,7 +1,7 @@
 const NodeKeyValueStorage = @import("node_key_value_storage.zig").NodeKeyValueStorage;
 const std = @import("std");
 const debug = std.debug;
-const assert = debug.assert;
+const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 
@@ -14,6 +14,21 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             right_child : ?*Node,
             key : Key,
             value : Value,
+
+            pub fn initRoot(self : *Node, key : Key, value : Value) void {
+                self.init(0, null, null, null, key, value);
+            }
+            pub fn initLeaf(self : *Node, parent : ?*Node, key : Key, value : Value) void {
+                self.init(0, parent, null, null, key, value);
+            }
+            pub fn init(self: *Node, level: u8, parent : ?*Node, left_child : ?*Node, right_child : ?*Node, key : Key, value : Value) void {
+                self.level = level;
+                self.parent = parent;
+                self.left_child = left_child;
+                self.right_child = right_child;
+                self.key = key;
+                self.value = value;
+            }
             pub fn children(self: * Node, i: u1) *?*Node {return switch(i){ 0 => &self.left_child, 1=> &self.right_child, else=> unreachable,};}
             pub fn hasRightChild(self: Node) bool {return self.right_child != null;}
             pub fn hasLeftChild(self: Node) bool {return self.left_child != null;}
@@ -81,6 +96,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                 return new_root;
             }
         };
+
         root: ?*Node,
         size: usize,
         allocator: *Allocator,
@@ -130,7 +146,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                         self.node = parent;
                         self.origin = Origin.Left;
                     } else {
-                        assert(self.node.?.isRightChild());
+                        testing.expect(self.node.?.isRightChild());
                         self.node = parent;
                         self.origin = Origin.Right;
                         _ = self.next();
@@ -175,7 +191,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                     next = node.right_child;
                 }
                 // we should be at a leaf
-                assert(!node.hasLeftChild() and !node.hasRightChild());
+                testing.expect(!node.hasLeftChild() and !node.hasRightChild());
                 // go up
                 next = node.parent;
                 // detach the node from it's parent
@@ -192,13 +208,19 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
 
         pub fn insert(self: * Self, key: Key, value: Value) !void {
             if (self.empty()) {
-                self.root = try self.allocator.create(Node{.level=0, .parent=null, .left_child=null, .right_child=null, .key=key, .value=value});
+                var new_node = try self.allocator.create(Node);
+                new_node.initRoot(key, value);
+                self.root = new_node;
             } else {
                 const insertion_point = self.findInsertionPoint(key);
                 if (less(key, insertion_point.key)) {
-                    insertion_point.left_child = try self.allocator.create(Node{.level=0, .parent=insertion_point, .left_child=null, .right_child=null, .key=key, .value=value});
+                    var new_node = try self.allocator.create(Node);
+                    new_node.initLeaf(insertion_point, key, value);
+                    insertion_point.left_child = new_node;
                 } else if (less(insertion_point.key, key)) {
-                    insertion_point.right_child = try self.allocator.create(Node{.level=0, .parent=insertion_point, .left_child=null, .right_child=null, .key=key, .value=value});
+                    var new_node = try self.allocator.create(Node);
+                    new_node.initLeaf(insertion_point, key, value);
+                    insertion_point.right_child = new_node;
                 } else {
                     return error.KeyAlreadyExists;
                 }
@@ -216,7 +238,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         }
 
         pub fn findInsertionPoint(self: Self, key: Key) *Node {
-            assert(!self.empty());
+            testing.expect(!self.empty());
             var next = self.root;
             var node = next.?;
             while(next != null) {
@@ -271,8 +293,8 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             if (self.getNode(key)) |node_in| {
                 var node = node_in;
                 if (node.successor()) |successor| {
-                    assert(successor != node);
-                    assert(successor.left_child == null);
+                    testing.expect(successor != node);
+                    testing.expect(successor.left_child == null);
                     node.key = successor.key;
                     node.value = successor.value;
                     node = successor;
@@ -284,7 +306,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
 
 
                 // Node is a external node with no successor, so assign the left node to the parent
-                assert(node.right_child == null);
+                testing.expect(node.right_child == null);
                 var parent_node = node.parent;
                 if (parent_node) |parent| {
                     const which_child = parent.right_child == node;
@@ -354,8 +376,8 @@ test "OrderedMap initialization" {
     var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(container.empty());
-    assert(container.count() == 0);
+    testing.expect(container.empty());
+    testing.expect(container.count() == 0);
 }
 
 test "OrderedMap insert" {
@@ -363,12 +385,12 @@ test "OrderedMap insert" {
     defer container.deinit();
 
     try container.insert(2, 1.5);
-    assert(container.count() == 1);
-    assert(!container.empty());
+    testing.expect(container.count() == 1);
+    testing.expect(!container.empty());
     try container.insert(3, 2.5);
-    assert(container.count() == 2);
-    assert(!container.empty());
-    debug.assertError(container.insert(2, 3.0), error.KeyAlreadyExists);
+    testing.expect(container.count() == 2);
+    testing.expect(!container.empty());
+    testing.expectError(error.KeyAlreadyExists, container.insert(2, 3.0));
 }
 
 test "OrderedMap clear" {
@@ -378,32 +400,32 @@ test "OrderedMap clear" {
     try container.insert(2, 1.5);
     try container.insert(3, 1.5);
     try container.insert(4, 1.5);
-    assert(!container.empty());
-    assert(container.count() != 0);
+    testing.expect(!container.empty());
+    testing.expect(container.count() != 0);
     container.clear();
-    assert(container.empty());
-    assert(container.count() == 0);
+    testing.expect(container.empty());
+    testing.expect(container.count() == 0);
 }
 
 test "OrderedMap exists" {
     var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(!container.exists(2));
+    testing.expect(!container.exists(2));
     try container.insert(2, 1.5);
-    assert(container.exists(2));
-    assert(!container.exists(1));
+    testing.expect(container.exists(2));
+    testing.expect(!container.exists(1));
 }
 
 test "OrderedMap get" {
     var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    assert(container.get(2) == null);
+    testing.expect(container.get(2) == null);
     try container.insert(2, 1.5);
     try container.insert(3, 2.5);
-    assert(container.get(2).?.* == 1.5);
-    assert(container.get(3).?.* == 2.5);
+    testing.expect(container.get(2).?.* == 1.5);
+    testing.expect(container.get(3).?.* == 2.5);
 }
 
 test "OrderedMap Iterator" {
@@ -412,9 +434,9 @@ test "OrderedMap Iterator" {
 
     {
         var iterator = container.iterator();
-        assert(iterator.current() == null);
-        assert(iterator.next() == null);
-        assert(iterator.next() == null);
+        testing.expect(iterator.current() == null);
+        testing.expect(iterator.next() == null);
+        testing.expect(iterator.next() == null);
     }
 
     const keys = []u32{2, 3, 1};
@@ -429,10 +451,10 @@ test "OrderedMap Iterator" {
     var iterator = container.iterator();
     var i = u32(0);
     while (iterator.next()) |next| : (i += 1) {
-        assert(next.key() == ordered_keys[i]);
-        assert(next.value() == ordered_values[i]);
+        testing.expect(next.key() == ordered_keys[i]);
+        testing.expect(next.value() == ordered_values[i]);
     }
-    assert(i == container.count());
+    testing.expect(i == container.count());
 
     //debug.warn("Header is {} bytes\n", usize(@sizeOf(OrderedMap(u32,u32,less_u32).Header)));
 }
@@ -445,15 +467,15 @@ test "OrderedMap remove" {
     try container.insert(3, 1.5);
     try container.insert(4, 1.5);
 
-    assert(container.exists(3));
-    assert(container.remove(3));
-    assert(!container.exists(3));
+    testing.expect(container.exists(3));
+    testing.expect(container.remove(3));
+    testing.expect(!container.exists(3));
 
-    assert(container.exists(4));
-    assert(container.remove(4));
-    assert(!container.exists(4));
+    testing.expect(container.exists(4));
+    testing.expect(container.remove(4));
+    testing.expect(!container.exists(4));
 
-    assert(container.count() == 1);
+    testing.expect(container.count() == 1);
 }
 
 test "OrderedMap insert remove many" {
@@ -473,9 +495,9 @@ test "OrderedMap insert remove many" {
         try container.insert(key, 1.5);
     }
     for (keys) |key| {
-        assert(container.remove(key));
+        testing.expect(container.remove(key));
     }
-    assert(container.empty());
+    testing.expect(container.empty());
 }
 
 fn levelsOk(flatMap: var, node0: *@typeOf(flatMap).Node) bool {
@@ -513,7 +535,7 @@ test "OrderedMap levels" {
         try container.insert(key, 1.5);
         var iterator = container.iterator();
         while (iterator.next()) |next| {
-            assert(levelsOk(container, next.node));
+            testing.expect(levelsOk(container, next.node));
         }
     }
 

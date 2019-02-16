@@ -1,5 +1,5 @@
 const std = @import("std");
-const assert = std.debug.assert;
+const testing = std.testing;
 
 // find the next element for which the condition is true
 pub fn findNext(comptime T: type, range: []T, comptime condition: fn (element: T) bool) usize
@@ -29,13 +29,13 @@ pub fn partition(comptime T : type, data: []T, comptime predicate: fn (element: 
 
         if(begin < end)
         {
-            assert((end - begin) > 1);
+            testing.expect((end - begin) > 1);
             std.mem.swap(T, &data[begin], &data[end - 1]);
             begin += 1;
             end -= 1;
         }
     }
-    assert(begin == end);
+    testing.expect(begin == end);
     return begin;
 }
 
@@ -54,7 +54,7 @@ pub fn dualPivotPartition(
     less: fn(a: T, b: T) bool) Pair()
 {
     // less or equal
-    assert(!less(pivot2, pivot1));
+    testing.expect(!less(pivot2, pivot1));
     var begin: usize = 0;
     var end = input_data.len;
     // first skip elements already in the right place on both sides, so we end up in the middle if we have all the same values (or similar situation)
@@ -161,7 +161,6 @@ pub fn partition3ByEstimatedMedian(
     std.mem.swap(T, &data[data.len - 1], pivot);
     var current_partition_elements = partition3(T, data[0..data.len-2], data[data.len - 1], less);
     std.mem.swap(T, &data[current_partition_elements.second], &data[data.len - 1]);
-    current_partition_elements.second += 1;
     return current_partition_elements;
 }
 
@@ -172,7 +171,7 @@ pub fn nthElement(
     comptime less: fn(a: T, b: T) bool) void
 {
     var partition_point = partition_point_in;
-    assert(partition_point >= 0 and partition_point <= data.len);
+    testing.expect(partition_point >= 0 and partition_point <= data.len);
     if (data.len == partition_point) return;
     var partition_data = data;
     while(partition_data.len > 16) {
@@ -182,7 +181,7 @@ pub fn nthElement(
         } else if(partition_point < current_partition_elements.first) {
             partition_data = partition_data[0..current_partition_elements.first];
         } else {
-            assert(partition_point >= current_partition_elements.second);
+            testing.expect(partition_point >= current_partition_elements.second);
             partition_data = partition_data[current_partition_elements.second..];
             partition_point -= current_partition_elements.second;
         }
@@ -208,21 +207,21 @@ fn makeRandomData(comptime size: usize) [size]i64 {
 }
 
 test "partition" {
-    var values = makeRandomData(10);
+    var values = makeRandomData(50);
     var original = values;
     const pivot_value = 0;
     const partition_point = partition(i64, values[0..], isNegative);
     for (values[0..partition_point]) |value| {
-        assert(value < pivot_value);
+        testing.expect(value < pivot_value);
     }
     for (values[partition_point..]) |value| {
-        assert(value >= pivot_value);
+        testing.expect(value >= pivot_value);
     }
 
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    assert(std.mem.eql(i64, original, values));
+    testing.expect(std.mem.eql(i64, original, values));
 }
 
 test "partition with 2 values" {
@@ -232,16 +231,16 @@ test "partition with 2 values" {
     const pivot_value : i64 = 0;
     const partition_point = partition(i64, values[0..], isNegative);
     for (values[0..partition_point]) |value| {
-        assert(value < pivot_value);
+        testing.expect(value < pivot_value);
     }
     for (values[partition_point..]) |value| {
-        assert(value >= pivot_value);
+        testing.expect(value >= pivot_value);
     }
 
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    assert(std.mem.eql(i64, original, values));
+    testing.expect(std.mem.eql(i64, original, values));
 }
 
 fn testDualPivotPartition(values: []i64, pivot_value1: i64, pivot_value2: i64) void {
@@ -252,21 +251,21 @@ fn testDualPivotPartition(values: []i64, pivot_value1: i64, pivot_value2: i64) v
     const greater = values[pair.second..];
     for(smaller) |value|
     {
-        assert(value < pivot_value1);
+        testing.expect(value < pivot_value1);
     }
     for (middle) |value| {
-        assert(value >= pivot_value1);
-        assert(value <= pivot_value2);
+        testing.expect(value >= pivot_value1);
+        testing.expect(value <= pivot_value2);
     }
     for(greater) |value|
     {
-        assert(value > pivot_value2);
+        testing.expect(value > pivot_value2);
     }
 
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    assert(std.mem.eql(i64, original, values));
+    testing.expect(std.mem.eql(i64, original, values));
 }
 
 test "DualPivotPartition" {
@@ -296,14 +295,14 @@ test "NthElement" {
     const n: usize = 20;
     nthElement(i64, values[0..], n, lessThan);
     for(values[0..n]) |value| {
-        assert(value <= values[n]);
+        testing.expect(value <= values[n]);
     }
     for(values[n + 1..]) |value| {
-        assert(value >= values[n]);
+        testing.expect(value >= values[n]);
     }
 
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    assert(std.mem.eql(i64, original, values));
+    testing.expect(std.mem.eql(i64, original, values));
 }

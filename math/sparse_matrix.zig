@@ -1,6 +1,6 @@
 const std = @import("std");
 const debug = std.debug;
-const assert = debug.assert;
+const testing = std.testing;
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
@@ -43,6 +43,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         pub fn numberOfColumns(self: Self) u32 {
             return self.column_count;
         }
+
 
         pub fn numberOfElements(self: Self) u32 {
             return @intCast(u32, self.column_indices.len);
@@ -117,7 +118,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn transpose(self: Self, transposed: *Self) !void {
-            assert(&self != transposed);
+            testing.expect(&self != transposed);
             const column_count = self.numberOfColumns();
             transposed.row_offsets.shrink(0);
             try transposed.row_offsets.resize(column_count + 1);
@@ -166,7 +167,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         /// will be two arrays of b.numberOfColumns(), one of DataType and one of u32.
         pub fn multiply(a: Self, b: Self, c: *Self, workspace_allocator: *Allocator) !void {
 
-            assert(a.numberOfColumns() == b.numberOfRows());
+            testing.expect(a.numberOfColumns() == b.numberOfRows());
             const column_count_b = b.numberOfColumns();
             const workspace = try workspace_allocator.alloc(DataType, column_count_b);
             const used = try workspace_allocator.alloc(u32, column_count_b);
@@ -237,8 +238,8 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn multiplyAdd(self: Self, x: []const DataType, x_scale: DataType, y: []DataType, y_scale: DataType) void {
-            assert(self.numberOfColumns() == x.len);
-            assert(self.numberOfRows() == y.len);
+            testing.expect(self.numberOfColumns() == x.len);
+            testing.expect(self.numberOfRows() == y.len);
 
             for (y) |*element_y, i| {
                 const row = @intCast(u32, i);
@@ -257,8 +258,8 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn multiplyAddTransposed(self: Self, x: []const DataType, x_scale: DataType, y: []DataType, y_scale: DataType) void {
-            assert(self.numberOfRows() == x.len);
-            assert(self.numberOfColumns() == y.len);
+            testing.expect(self.numberOfRows() == x.len);
+            testing.expect(self.numberOfColumns() == y.len);
 
             for (y) |*e| {
                 e.* *= y_scale;
@@ -293,17 +294,17 @@ test "SparseMatrix init" {
     var matrix = try SparseMatrix(f32).init(debug.global_allocator, 10, 5, 14);
     defer matrix.deinit();
 
-    assert(matrix.numberOfRows() == 10);
-    assert(matrix.numberOfColumns() == 5);
-    assert(matrix.numberOfElements() == 14);
+    testing.expect(matrix.numberOfRows() == 10);
+    testing.expect(matrix.numberOfColumns() == 5);
+    testing.expect(matrix.numberOfElements() == 14);
 }
 
 test "SparseMatrix sparistyRatio and densityRatio" {
     var matrix = try SparseMatrix(f32).init(debug.global_allocator, 10, 5, 14);
     defer matrix.deinit();
 
-    assert(matrix.densityRatio() == 50.0 / 14.0);
-    assert(matrix.sparistyRatio() == 14.0 / 50.0);
+    testing.expect(matrix.densityRatio() == 50.0 / 14.0);
+    testing.expect(matrix.sparistyRatio() == 14.0 / 50.0);
 }
 
 test "SparseMatrix columnsInRow and valuesInRow" {
@@ -324,45 +325,45 @@ test "SparseMatrix columnsInRow and valuesInRow" {
         offset = std.math.min(offset + 3, 14);
     }
 
-    assert(matrix.valuesInRow(0).len == 3);
-    assert(matrix.valuesInRow(0)[0] == 0);
-    assert(matrix.valuesInRow(0)[1] == 1);
-    assert(matrix.valuesInRow(0)[2] == 2);
-    assert(matrix.valuesInRow(1).len == 3);
-    assert(matrix.valuesInRow(1)[0] == 3);
-    assert(matrix.valuesInRow(1)[1] == 4);
-    assert(matrix.valuesInRow(1)[2] == 5);
-    assert(matrix.valuesInRow(2).len == 3);
-    assert(matrix.valuesInRow(2)[0] == 6);
-    assert(matrix.valuesInRow(2)[1] == 7);
-    assert(matrix.valuesInRow(2)[2] == 8);
-    assert(matrix.valuesInRow(3).len == 3);
-    assert(matrix.valuesInRow(3)[0] == 9);
-    assert(matrix.valuesInRow(3)[1] == 10);
-    assert(matrix.valuesInRow(3)[2] == 11);
-    assert(matrix.valuesInRow(4).len == 2);
-    assert(matrix.valuesInRow(4)[0] == 12);
-    assert(matrix.valuesInRow(4)[1] == 13);
+    testing.expect(matrix.valuesInRow(0).len == 3);
+    testing.expect(matrix.valuesInRow(0)[0] == 0);
+    testing.expect(matrix.valuesInRow(0)[1] == 1);
+    testing.expect(matrix.valuesInRow(0)[2] == 2);
+    testing.expect(matrix.valuesInRow(1).len == 3);
+    testing.expect(matrix.valuesInRow(1)[0] == 3);
+    testing.expect(matrix.valuesInRow(1)[1] == 4);
+    testing.expect(matrix.valuesInRow(1)[2] == 5);
+    testing.expect(matrix.valuesInRow(2).len == 3);
+    testing.expect(matrix.valuesInRow(2)[0] == 6);
+    testing.expect(matrix.valuesInRow(2)[1] == 7);
+    testing.expect(matrix.valuesInRow(2)[2] == 8);
+    testing.expect(matrix.valuesInRow(3).len == 3);
+    testing.expect(matrix.valuesInRow(3)[0] == 9);
+    testing.expect(matrix.valuesInRow(3)[1] == 10);
+    testing.expect(matrix.valuesInRow(3)[2] == 11);
+    testing.expect(matrix.valuesInRow(4).len == 2);
+    testing.expect(matrix.valuesInRow(4)[0] == 12);
+    testing.expect(matrix.valuesInRow(4)[1] == 13);
 
-    assert(matrix.columnsInRow(0).len == 3);
-    assert(matrix.columnsInRow(0)[0] == 0);
-    assert(matrix.columnsInRow(0)[1] == 3);
-    assert(matrix.columnsInRow(0)[2] == 6);
-    assert(matrix.columnsInRow(1).len == 3);
-    assert(matrix.columnsInRow(1)[0] == 9);
-    assert(matrix.columnsInRow(1)[1] == 2);
-    assert(matrix.columnsInRow(1)[2] == 5);
-    assert(matrix.columnsInRow(2).len == 3);
-    assert(matrix.columnsInRow(2)[0] == 8);
-    assert(matrix.columnsInRow(2)[1] == 1);
-    assert(matrix.columnsInRow(2)[2] == 4);
-    assert(matrix.columnsInRow(3).len == 3);
-    assert(matrix.columnsInRow(3)[0] == 7);
-    assert(matrix.columnsInRow(3)[1] == 0);
-    assert(matrix.columnsInRow(3)[2] == 3);
-    assert(matrix.columnsInRow(4).len == 2);
-    assert(matrix.columnsInRow(4)[0] == 6);
-    assert(matrix.columnsInRow(4)[1] == 9);
+    testing.expect(matrix.columnsInRow(0).len == 3);
+    testing.expect(matrix.columnsInRow(0)[0] == 0);
+    testing.expect(matrix.columnsInRow(0)[1] == 3);
+    testing.expect(matrix.columnsInRow(0)[2] == 6);
+    testing.expect(matrix.columnsInRow(1).len == 3);
+    testing.expect(matrix.columnsInRow(1)[0] == 9);
+    testing.expect(matrix.columnsInRow(1)[1] == 2);
+    testing.expect(matrix.columnsInRow(1)[2] == 5);
+    testing.expect(matrix.columnsInRow(2).len == 3);
+    testing.expect(matrix.columnsInRow(2)[0] == 8);
+    testing.expect(matrix.columnsInRow(2)[1] == 1);
+    testing.expect(matrix.columnsInRow(2)[2] == 4);
+    testing.expect(matrix.columnsInRow(3).len == 3);
+    testing.expect(matrix.columnsInRow(3)[0] == 7);
+    testing.expect(matrix.columnsInRow(3)[1] == 0);
+    testing.expect(matrix.columnsInRow(3)[2] == 3);
+    testing.expect(matrix.columnsInRow(4).len == 2);
+    testing.expect(matrix.columnsInRow(4)[0] == 6);
+    testing.expect(matrix.columnsInRow(4)[1] == 9);
 }
 
 test "SparseMatrix get element" {
@@ -383,20 +384,20 @@ test "SparseMatrix get element" {
         offset = std.math.min(offset + 3, 14);
     }
 
-    assert(matrix.getElement(0, 0).* == 0);
-    assert(matrix.getElement(0, 3).* == 1);
-    assert(matrix.getElement(0, 6).* == 2);
-    assert(matrix.getElement(1, 9).* == 3);
-    assert(matrix.getElement(1, 2).* == 4);
-    assert(matrix.getElement(1, 5).* == 5);
-    assert(matrix.getElement(2, 8).* == 6);
-    assert(matrix.getElement(2, 1).* == 7);
-    assert(matrix.getElement(2, 4).* == 8);
-    assert(matrix.getElement(3, 7).* == 9);
-    assert(matrix.getElement(3, 0).* == 10);
-    assert(matrix.getElement(3, 3).* == 11);
-    assert(matrix.getElement(4, 6).* == 12);
-    assert(matrix.getElement(4, 9).* == 13);
+    testing.expect(matrix.getElement(0, 0).* == 0);
+    testing.expect(matrix.getElement(0, 3).* == 1);
+    testing.expect(matrix.getElement(0, 6).* == 2);
+    testing.expect(matrix.getElement(1, 9).* == 3);
+    testing.expect(matrix.getElement(1, 2).* == 4);
+    testing.expect(matrix.getElement(1, 5).* == 5);
+    testing.expect(matrix.getElement(2, 8).* == 6);
+    testing.expect(matrix.getElement(2, 1).* == 7);
+    testing.expect(matrix.getElement(2, 4).* == 8);
+    testing.expect(matrix.getElement(3, 7).* == 9);
+    testing.expect(matrix.getElement(3, 0).* == 10);
+    testing.expect(matrix.getElement(3, 3).* == 11);
+    testing.expect(matrix.getElement(4, 6).* == 12);
+    testing.expect(matrix.getElement(4, 9).* == 13);
 }
 
 test "SparseMatrix add element" {
@@ -404,12 +405,12 @@ test "SparseMatrix add element" {
     defer matrix.deinit();
 
     try matrix.addElement(1, 2, 1);
-    assert(matrix.getElement(1, 2).* == 1);
+    testing.expect(matrix.getElement(1, 2).* == 1);
     try matrix.addElement(1, 1, 2);
-    assert(matrix.getElement(1, 1).* == 2);
+    testing.expect(matrix.getElement(1, 1).* == 2);
     try matrix.addElement(0, 4, 3);
-    assert(matrix.getElement(0, 4).* == 3);
-    assert(matrix.numberOfElements() == 3);
+    testing.expect(matrix.getElement(0, 4).* == 3);
+    testing.expect(matrix.numberOfElements() == 3);
 }
 
 test "SparseMatrix remove zero entries" {
@@ -431,7 +432,7 @@ test "SparseMatrix remove zero entries" {
     }
 
     matrix.removeZeroEntries();
-    assert(matrix.numberOfElements() == 7);
+    testing.expect(matrix.numberOfElements() == 7);
 }
 
 test "SparseMatrix transpose" {
@@ -457,20 +458,20 @@ test "SparseMatrix transpose" {
 
     try matrix.transpose(&matrix_transposed);
 
-    assert(matrix_transposed.getElement(0, 0).* == 0);
-    assert(matrix_transposed.getElement(3, 0).* == 1);
-    assert(matrix_transposed.getElement(6, 0).* == 2);
-    assert(matrix_transposed.getElement(9, 1).* == 3);
-    assert(matrix_transposed.getElement(2, 1).* == 4);
-    assert(matrix_transposed.getElement(5, 1).* == 5);
-    assert(matrix_transposed.getElement(8, 2).* == 6);
-    assert(matrix_transposed.getElement(1, 2).* == 7);
-    assert(matrix_transposed.getElement(4, 2).* == 8);
-    assert(matrix_transposed.getElement(7, 3).* == 9);
-    assert(matrix_transposed.getElement(0, 3).* == 10);
-    assert(matrix_transposed.getElement(3, 3).* == 11);
-    assert(matrix_transposed.getElement(6, 4).* == 12);
-    assert(matrix_transposed.getElement(9, 4).* == 13);
+    testing.expect(matrix_transposed.getElement(0, 0).* == 0);
+    testing.expect(matrix_transposed.getElement(3, 0).* == 1);
+    testing.expect(matrix_transposed.getElement(6, 0).* == 2);
+    testing.expect(matrix_transposed.getElement(9, 1).* == 3);
+    testing.expect(matrix_transposed.getElement(2, 1).* == 4);
+    testing.expect(matrix_transposed.getElement(5, 1).* == 5);
+    testing.expect(matrix_transposed.getElement(8, 2).* == 6);
+    testing.expect(matrix_transposed.getElement(1, 2).* == 7);
+    testing.expect(matrix_transposed.getElement(4, 2).* == 8);
+    testing.expect(matrix_transposed.getElement(7, 3).* == 9);
+    testing.expect(matrix_transposed.getElement(0, 3).* == 10);
+    testing.expect(matrix_transposed.getElement(3, 3).* == 11);
+    testing.expect(matrix_transposed.getElement(6, 4).* == 12);
+    testing.expect(matrix_transposed.getElement(9, 4).* == 13);
 }
 
 test "SparseMatrix multiply" {
@@ -519,7 +520,7 @@ test "SparseMatrix multiply" {
     try result.transpose(&transposed_result);
     try transposed_result.transpose(&result);
 
-    assert(equal(expected, result));
+    testing.expect(equal(expected, result));
 }
 
 test "SparseMatrix multiplyAdd" {
@@ -539,11 +540,11 @@ test "SparseMatrix multiplyAdd" {
     var y = []f32{1, 2, 3, 4, 5};
 
     matrix.multiplyAdd(x[0..], 2, y[0..], 3);
-    assert(y[0] == 6 + 3);
-    assert(y[1] == 8 + 18 + 6);
-    assert(y[2] == 8 + 9);
-    assert(y[3] == 20 + 36 + 12);
-    assert(y[4] == 14 + 15);
+    testing.expect(y[0] == 6 + 3);
+    testing.expect(y[1] == 8 + 18 + 6);
+    testing.expect(y[2] == 8 + 9);
+    testing.expect(y[3] == 20 + 36 + 12);
+    testing.expect(y[4] == 14 + 15);
 }
 
 test "SparseMatrix multiplyAddTransposed" {
@@ -563,7 +564,7 @@ test "SparseMatrix multiplyAddTransposed" {
     var y = []f32{1, 2, 3};
 
     matrix.multiplyAddTransposed(x[0..], 2, y[0..], 3);
-    assert(y[0] == 24 + 70 + 3);
-    assert(y[1] == 8 + 40 + 6);
-    assert(y[2] == 2 + 12 + 48 + 9);
+    testing.expect(y[0] == 24 + 70 + 3);
+    testing.expect(y[1] == 8 + 40 + 6);
+    testing.expect(y[2] == 2 + 12 + 48 + 9);
 }

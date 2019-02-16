@@ -174,30 +174,30 @@ pub fn fnvHash(byte_data : [] const u8, seed_in : u64) u64
     return hash;
 }
 
-const assert = @import("std").debug.assert;
+const testing = @import("std").testing;
 
 test "murBasHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
-    assert(murBasHash(string, 42) != 0);
+    testing.expect(murBasHash(string, 42) != 0);
 }
 
 test "bytestreamHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
-    assert(bytestreamHash(string, 42) != 0);
-    assert(bytestreamHash(string, 42) == 1641407811188335103);
+    testing.expect(bytestreamHash(string, 42) != 0);
+    testing.expect(bytestreamHash(string, 42) == 1641407811188335103);
 }
 
 test "shortHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
-    assert(shortHash(string, 42) != 0);
+    testing.expect(shortHash(string, 42) != 0);
 }
 
 test "byteHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
-    assert(byteHash(string, 42) != 0);
+    testing.expect(byteHash(string, 42) != 0);
 }
 
 test "fnvHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
-    assert(fnvHash(string, 42) != 0);
+    testing.expect(fnvHash(string, 42) != 0);
 }
