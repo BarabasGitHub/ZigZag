@@ -238,22 +238,22 @@ test "initialized HashMap state" {
     defer map.deinit();
 
     testing.expect(map.empty());
-    testing.expect(map.countElements() == 0);
-    testing.expect(map.capacity() == 0);
-    testing.expect(map.loadFactor() == 0);
-    testing.expect(map.bucketIndex(14.88) == 0);
-    testing.expect(map.bucketCount() == 1);
+    testing.expectEqual(map.countElements(), 0);
+    testing.expectEqual(map.capacity(), 0);
+    testing.expectEqual(map.loadFactor(), 0);
+    testing.expectEqual(map.bucketIndex(14.88), 0);
+    testing.expectEqual(map.bucketCount(), 1);
 }
 
 test "increase HashMap bucket count" {
     var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
     defer map.deinit();
 
-    testing.expect(map.bucketCount() == 1);
+    testing.expectEqual(map.bucketCount(), 1);
     try map.increaseBucketCount();
-    testing.expect(map.bucketCount() == 2);
+    testing.expectEqual(map.bucketCount(), 2);
     try map.increaseBucketCount();
-    testing.expect(map.bucketCount() == 4);
+    testing.expectEqual(map.bucketCount(), 4);
 }
 
 
@@ -261,11 +261,11 @@ test "set and grow HashMap capacity" {
     var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
     defer map.deinit();
 
-    testing.expect(map.capacity() == 0);
+    testing.expectEqual(map.capacity(), 0);
     try map.growCapacity();
     testing.expect(map.capacity() > 0);
     try map.setCapacity(10);
-    testing.expect(map.capacity() == 10);
+    testing.expectEqual(map.capacity(), 10);
     try map.growCapacity();
     testing.expect(map.capacity() > 10);
 }
@@ -276,13 +276,13 @@ test "insert and clear in HashMap" {
 
     testing.expect(map.empty());
     try map.insert(0.5, 123);
-    testing.expect(map.countElements() == 1);
+    testing.expectEqual(map.countElements(), 1);
     try map.insert(1.5, 234);
-    testing.expect(map.countElements() == 2);
+    testing.expectEqual(map.countElements(), 2);
 
     map.clear();
     testing.expect(map.empty());
-    testing.expect(map.countElements() == 0);
+    testing.expectEqual(map.countElements(), 0);
 }
 
 test "HashMap get and exists" {
@@ -294,17 +294,17 @@ test "HashMap get and exists" {
     try map.insert(2.0, 345);
 
     testing.expect(!map.exists(0.0));
-    testing.expect(map.get(0.0) == null);
+    testing.expectEqual(map.get(0.0), null);
     testing.expect(map.exists(0.5));
-    testing.expect(map.get(0.5).?.* == 123);
+    testing.expectEqual(map.get(0.5).?.*, 123);
     testing.expect(!map.exists(1.0));
-    testing.expect(map.get(1.0) == null);
+    testing.expectEqual(map.get(1.0), null);
     testing.expect(map.exists(1.5));
-    testing.expect(map.get(1.5).?.* == 234);
+    testing.expectEqual(map.get(1.5).?.*, 234);
     testing.expect(map.exists(2.0));
-    testing.expect(map.get(2.0).?.* == 345);
+    testing.expectEqual(map.get(2.0).?.*, 345);
     testing.expect(!map.exists(2.5));
-    testing.expect(map.get(2.5) == null);
+    testing.expectEqual(map.get(2.5), null);
 }
 
 test "remove from HashMap" {

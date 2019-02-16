@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 
 // This is not really statistics related, but ehh... we need it and I don't know where else to put it for now
 fn dotProduct(comptime T: type, a: []const T, b: []const T) T {
-    testing.expect(a.len == b.len);
+    testing.expectEqual(a.len, b.len);
     var s = T(0);
     for(a) |e,i| {
         s += e * b[i];
@@ -26,7 +26,7 @@ pub fn average(comptime Type: type, input: []const Type) Type {
 }
 
 pub fn covariance(comptime Type: type, input_x: []const Type, input_y: []const Type) Type {
-    testing.expect(input_x.len == input_y.len);
+    testing.expectEqual(input_x.len, input_y.len);
     return dotProduct(Type, input_x, input_y) - lengthOfType(Type, input_x) * average(Type, input_x) * average(Type, input_y);
 }
 
@@ -52,37 +52,37 @@ test "dotProduct" {
         const a = []t{1, 2, 3};
         const b = []t{3, 4, 5};
         const c = dotProduct(t, a, b);
-        testing.expect(c == 3 + 8 + 15);
+        testing.expectEqual(c, 3 + 8 + 15);
     }
 }
 
 test "sum" {
     const a = []f32{1, 2, 3};
     const b = sum(f32, a);
-    testing.expect(b == 1 + 2 + 3);
+    testing.expectEqual(b, 1 + 2 + 3);
 }
 
 test "average" {
     const a = []f32{1, 2, 3};
     const b = average(f32, a);
-    testing.expect(b == sum(f32, a) / 3);
+    testing.expectEqual(b, sum(f32, a) / 3);
 }
 
 test "covariance" {
     const a = []f32{1, 2, 3};
     const b = []f32{3, 4, 5};
     const c = covariance(f32, a, b);
-    testing.expect(c == dotProduct(f32, a, b) - 3 * 2 * 4);
+    testing.expectEqual(c, dotProduct(f32, a, b) - 3 * 2 * 4);
 }
 
 test "variance" {
     const a = []f32{1, 2, 3};
     const b = variance(f32, a);
-    testing.expect(b == (1 + 4 + 9) - 3 * 4);
+    testing.expectEqual(b, (1 + 4 + 9) - 3 * 4);
 }
 
 test "standard deviation" {
     const a = []f32{1, 2, 3};
     const b = standardDeviation(f32, a);
-    testing.expect(b == std.math.sqrt(f32(2)));
+    testing.expectEqual(b, std.math.sqrt(f32(2)));
 }

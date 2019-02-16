@@ -64,7 +64,7 @@ pub fn BipartiteBuffer() type {
             if (self.reserved.ptr == self.primary.ptr + self.primary.len) {
                 self.primary = self.memory[self.primaryDataStart()..self.primaryDataEnd() + count];
             } else {
-                testing.expect(self.memory.ptr + self.secondaryDataSize() == self.reserved.ptr);
+                std.debug.assert(self.memory.ptr + self.secondaryDataSize() == self.reserved.ptr);
                 self.secondary_size += count;
             }
             self.reserved = []u8{};
@@ -166,11 +166,11 @@ test "initialized BipartiteBuffer state" {
 
     testing.expect(buffer.empty());
     testing.expect(!buffer.isFull());
-    testing.expect(buffer.size() == 0);
-    testing.expect(buffer.capacity() == capacity);
-    testing.expect(buffer.reserved.len == 0);
-    testing.expect(buffer.peek().len == 0);
-    testing.expect(buffer.readBlock().len == 0);
+    testing.expectEqual(buffer.size(), 0);
+    testing.expectEqual(buffer.capacity(), capacity);
+    testing.expectEqual(buffer.reserved.len, 0);
+    testing.expectEqual(buffer.peek().len, 0);
+    testing.expectEqual(buffer.readBlock().len, 0);
 }
 
 const TestMessage = packed struct {
@@ -209,20 +209,20 @@ test "fill and drain BipartiteBuffer" {
         var reserved = try buffer.reserve(message_size);
         testing.expect(reserved.len >= message_size);
         testing.expect(reserved.ptr == buffer.reserved.ptr);
-        testing.expect(reserved.len == buffer.reserved.len);
+        testing.expectEqual(reserved.len, buffer.reserved.len);
         std.mem.copy(u8, reserved[0..message_size], asByteSlice(test_message));
         try buffer.commit(message_size);
-        testing.expect(buffer.size() == message_size * (i + 1));
+        testing.expectEqual(buffer.size(), message_size * (i + 1));
     }
     // then put and pull out at the same time
     for (test_messages[message_count/4..]) |test_message, i| {
         var reserved = try buffer.reserve(message_size);
         testing.expect(reserved.len >= message_size);
         testing.expect(reserved.ptr == buffer.reserved.ptr);
-        testing.expect(reserved.len == buffer.reserved.len);
+        testing.expectEqual(reserved.len, buffer.reserved.len);
         std.mem.copy(u8, reserved[0..message_size], asByteSlice(test_message));
         try buffer.commit(message_size);
-        testing.expect(buffer.size() == message_size * (message_count/4 + 1));
+        testing.expectEqual(buffer.size(), message_size * (message_count/4 + 1));
 
         var peek = buffer.peek();
         testing.expect(peek.len >= message_size);
@@ -231,7 +231,7 @@ test "fill and drain BipartiteBuffer" {
         testing.expect(block.len >= message_size);
         testing.expect(std.mem.eql(u8, block[0..message_size], asByteSlice(test_messages[i])));
         try buffer.release(message_size);
-        testing.expect(buffer.size() == message_size * (message_count/4));
+        testing.expectEqual(buffer.size(), message_size * (message_count/4));
     }
     // then pull out the last messages
     for (test_messages[message_count-message_count/4..]) |test_message, i| {
@@ -242,10 +242,10 @@ test "fill and drain BipartiteBuffer" {
         testing.expect(block.len >= message_size);
         testing.expect(std.mem.eql(u8, block[0..message_size], asByteSlice(test_message)));
         try buffer.release(message_size);
-        testing.expect(buffer.size() == message_size * (message_count/4 - i - 1));
+        testing.expectEqual(buffer.size(), message_size * (message_count/4 - i - 1));
     }
     testing.expect(buffer.empty());
-    testing.expect(buffer.size() == 0);
+    testing.expectEqual(buffer.size(), 0);
 }
 
 test "discard data" {
@@ -254,10 +254,10 @@ test "discard data" {
 
     _ = try buffer.reserve(50);
     try buffer.commit(50);
-    testing.expect(buffer.size() == 50);
+    testing.expectEqual(buffer.size(), 50);
     try buffer.discard(30);
-    testing.expect(buffer.size() == 20);
-    buffer.discard(30) catch |err| testing.expect(err == BufferDiscardError.DiscardingMoreThanAvailable);
+    testing.expectEqual(buffer.size(), 20);
+    buffer.discard(30) catch |err| testing.expectEqual(err, BufferDiscardError.DiscardingMoreThanAvailable);
     testing.expect(!buffer.empty());
     buffer.discardAll();
     testing.expect(buffer.empty());
@@ -269,9 +269,9 @@ test "release data" {
 
     _ = try buffer.reserve(50);
     try buffer.commit(50);
-    testing.expect(buffer.size() == 50);
-    buffer.release(30) catch |err| testing.expect(err == BufferReleaseError.ReleasingMoreThanRead);
+    testing.expectEqual(buffer.size(), 50);
+    testing.expectError(BufferReleaseError.ReleasingMoreThanRead, buffer.release(30));
     _ = buffer.readBlock();
     try buffer.release(30);
-    testing.expect(buffer.size() == 20);
+    testing.expectEqual(buffer.size(), 20);
 }

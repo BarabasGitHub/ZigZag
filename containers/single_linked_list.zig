@@ -128,7 +128,7 @@ test "SingleLinkedList initialization" {
     defer container.deinit();
 
     testing.expect(container.empty());
-    testing.expect(container.count() == 0);
+    testing.expectEqual(container.count(), 0);
 }
 
 test "SingleLinkedList prepend" {
@@ -137,7 +137,7 @@ test "SingleLinkedList prepend" {
 
     try container.prepend(1);
     try container.prepend(2);
-    testing.expect(container.count() == 2);
+    testing.expectEqual(container.count(), 2);
 }
 
 test "SingleLinkedList front" {
@@ -145,9 +145,9 @@ test "SingleLinkedList front" {
     defer container.deinit();
 
     try container.prepend(1);
-    testing.expect(container.front().* == 1);
+    testing.expectEqual(container.front().*, 1);
     try container.prepend(2);
-    testing.expect(container.front().* == 2);
+    testing.expectEqual(container.front().*, 2);
 }
 
 test "SingleLinkedList popFront" {
@@ -157,7 +157,7 @@ test "SingleLinkedList popFront" {
     try container.prepend(1);
     try container.prepend(2);
     container.popFront();
-    testing.expect(container.front().* == 1);
+    testing.expectEqual(container.front().*, 1);
 }
 
 test "SingleLinkedList iterate" {
@@ -174,7 +174,7 @@ test "SingleLinkedList iterate" {
     var iter = container.iterator();
     var expected = u32(1);
     while (iter.next()) |value| {
-        testing.expect(value.* == expected);
+        testing.expectEqual(value.*, expected);
         expected += 1;
     }
 }
@@ -186,10 +186,10 @@ test "SingleLinkedList insert" {
     try container.prepend(3);
     var iter = container.iterator();
     try container.insert(iter.node.?, 4);
-    testing.expect(iter.next().?.* == 3);
+    testing.expectEqual(iter.next().?.*, 3);
     try container.insert(iter.node.?, 5);
-    testing.expect(iter.next().?.* == 4);
-    testing.expect(iter.next().?.* == 5);
+    testing.expectEqual(iter.next().?.*, 4);
+    testing.expectEqual(iter.next().?.*, 5);
     testing.expect(iter.next() == null);
 }
 
@@ -203,7 +203,7 @@ test "SingleLinkedList clear" {
 
     container.clear();
     testing.expect(container.empty());
-    testing.expect(container.count() == 0);
+    testing.expectEqual(container.count(), 0);
 }
 
 test "SingleLinkedList removeAfter" {
@@ -217,8 +217,8 @@ test "SingleLinkedList removeAfter" {
     var iter = container.iterator();
     container.removeAfter(iter.node.?);
     iter = container.iterator();
-    testing.expect(iter.next().?.* == 1);
-    testing.expect(iter.next().?.* == 3);
+    testing.expectEqual(iter.next().?.*, 1);
+    testing.expectEqual(iter.next().?.*, 3);
 }
 
 test "SingleLinkedList splitAfter" {
@@ -236,12 +236,12 @@ test "SingleLinkedList splitAfter" {
     iter = container.iterator();
     var expected = u32(0);
     while(iter.next()) |value| {
-        testing.expect(value.* == expected);
+        testing.expectEqual(value.*, expected);
         expected += 1;
     }
     iter = container2.iterator();
     while(iter.next()) |value| {
-        testing.expect(value.* == expected);
+        testing.expectEqual(value.*, expected);
         expected += 1;
     }
 }
@@ -256,7 +256,7 @@ test "SingleLinkedList reverse" {
 
     container.reverse();
     var iter = container.iterator();
-    testing.expect(iter.next().?.* == 1);
-    testing.expect(iter.next().?.* == 2);
-    testing.expect(iter.next().?.* == 3);
+    testing.expectEqual(iter.next().?.*, 1);
+    testing.expectEqual(iter.next().?.*, 2);
+    testing.expectEqual(iter.next().?.*, 3);
 }

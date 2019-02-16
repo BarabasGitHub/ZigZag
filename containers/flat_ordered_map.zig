@@ -224,7 +224,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
                 const headers = self.storage.nodes();
                 if (self.successor(index)) |successor_index| {
                     testing.expect(successor_index != index);
-                    testing.expect(headers[successor_index].left().* == invalid_index);
+                    testing.expectEqual(headers[successor_index].left().*, invalid_index);
                     const keys = self.storage.keys();
                     const values = self.storage.values();
                     keys[index] = keys[successor_index];
@@ -238,7 +238,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
 
 
                 // Node is a external index with no successor, so assign the left index to the parent
-                testing.expect(headers[index].right().* == invalid_index);
+                testing.expectEqual(headers[index].right().*, invalid_index);
                 var parent_index = headers[index].parent;
                 if (parent_index != invalid_index){
                     const which_child = headers[parent_index].right().* == index;
@@ -405,8 +405,8 @@ test "FlatOrderedMap initialization" {
     defer container.deinit();
 
     testing.expect(container.empty());
-    testing.expect(container.count() == 0);
-    testing.expect(container.capacity() == 0);
+    testing.expectEqual(container.count(), 0);
+    testing.expectEqual(container.capacity(), 0);
 }
 
 test "FlatOrderedMap insert" {
@@ -414,10 +414,10 @@ test "FlatOrderedMap insert" {
     defer container.deinit();
 
     try container.insert(2, 1.5);
-    testing.expect(container.count() == 1);
+    testing.expectEqual(container.count(), 1);
     testing.expect(!container.empty());
     try container.insert(3, 2.5);
-    testing.expect(container.count() == 2);
+    testing.expectEqual(container.count(), 2);
     testing.expect(!container.empty());
     testing.expectError(error.KeyAlreadyExists, container.insert(2, 3.0));
 }
@@ -435,8 +435,8 @@ test "FlatOrderedMap clear" {
     const old_capacity = container.capacity();
     container.clear();
     testing.expect(container.empty());
-    testing.expect(container.count() == 0);
-    testing.expect(container.capacity() == old_capacity);
+    testing.expectEqual(container.count(), 0);
+    testing.expectEqual(container.capacity(), old_capacity);
 }
 
 test "FlatOrderedMap exists" {
@@ -456,25 +456,25 @@ test "FlatOrderedMap get" {
     testing.expect(container.get(2) == null);
     try container.insert(2, 1.5);
     try container.insert(3, 2.5);
-    testing.expect(container.get(2).?.* == 1.5);
-    testing.expect(container.get(3).?.* == 2.5);
+    testing.expectEqual(container.get(2).?.*, 1.5);
+    testing.expectEqual(container.get(3).?.*, 2.5);
 }
 
 test "FlatOrderedMap ensure capacity" {
     var container = FlatOrderedMap(u32, f64, less_u32).init(debug.global_allocator);
     defer container.deinit();
 
-    testing.expect(container.capacity() == 0);
+    testing.expectEqual(container.capacity(), 0);
     try container.ensureCapacity(10);
-    testing.expect(container.capacity() == 10);
+    testing.expectEqual(container.capacity(), 10);
     try container.ensureCapacity(2);
-    testing.expect(container.capacity() == 10);
+    testing.expectEqual(container.capacity(), 10);
     try container.insert(2, 1.5);
     try container.insert(3, 2.5);
     try container.ensureCapacity(20);
-    testing.expect(container.capacity() == 20);
-    testing.expect(container.get(2).?.* == 1.5);
-    testing.expect(container.get(3).?.* == 2.5);
+    testing.expectEqual(container.capacity(), 20);
+    testing.expectEqual(container.get(2).?.*, 1.5);
+    testing.expectEqual(container.get(3).?.*, 2.5);
 }
 
 test "FlatOrderedMap Iterator" {
@@ -500,10 +500,10 @@ test "FlatOrderedMap Iterator" {
     var iterator = container.iterator();
     var i = u32(0);
     while (iterator.next()) |next| : (i += 1) {
-        testing.expect(next.key() == ordered_keys[i]);
-        testing.expect(next.value() == ordered_values[i]);
+        testing.expectEqual(next.key(), ordered_keys[i]);
+        testing.expectEqual(next.value(), ordered_values[i]);
     }
-    testing.expect(i == container.count());
+    testing.expectEqual(usize(i), container.count());
 
     //debug.warn("Header is {} bytes\n", usize(@sizeOf(FlatOrderedMap(u32,u32,less_u32).Header)));
 }
@@ -524,7 +524,7 @@ test "FlatOrderedMap remove" {
     testing.expect(container.remove(4));
     testing.expect(!container.exists(4));
 
-    testing.expect(container.count() == 1);
+    testing.expectEqual(container.count(), 1);
 }
 
 test "FlatOrderedMap insert remove many" {

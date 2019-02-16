@@ -118,8 +118,8 @@ test "NodeKeyValueStorage initialization" {
     defer container.deinit();
 
     testing.expect(container.empty());
-    testing.expect(container.size() == 0);
-    testing.expect(container.capacity() == 0);
+    testing.expectEqual(container.size(), 0);
+    testing.expectEqual(container.capacity(), 0);
 }
 
 test "NodeKeyValueStorage append elements" {
@@ -128,12 +128,12 @@ test "NodeKeyValueStorage append elements" {
 
     try container.append(0, 1.0, 1);
     testing.expect(!container.empty());
-    testing.expect(container.size() == 1);
+    testing.expectEqual(container.size(), 1);
     testing.expect(container.capacity() >= 1);
 
     try container.append(1, 2.0, 3);
     testing.expect(!container.empty());
-    testing.expect(container.size() == 2);
+    testing.expectEqual(container.size(), 2);
     testing.expect(container.capacity() >= 2);
 }
 
@@ -144,27 +144,27 @@ test "NodeKeyValueStorage clear" {
     try container.append(0, 1.0, 1);
     try container.append(0, 1.0, 1);
     try container.append(0, 1.0, 1);
-    testing.expect(container.size() == 3);
+    testing.expectEqual(container.size(), 3);
     testing.expect(!container.empty());
 
     container.clear();
 
-    testing.expect(container.size() == 0);
+    testing.expectEqual(container.size(), 0);
     testing.expect(container.empty());
 }
 
 test "NodeKeyValueStorage set capacity" {
     var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
     defer container.deinit();
-    testing.expect(container.capacity() == 0);
+    testing.expectEqual(container.capacity(), 0);
     try container.setCapacity(10);
-    testing.expect(container.capacity() == 10);
+    testing.expectEqual(container.capacity(), 10);
 }
 
 test "NodeKeyValueStorage grow capacity" {
     var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
     defer container.deinit();
-    testing.expect(container.capacity() == 0);
+    testing.expectEqual(container.capacity(), 0);
     try container.growCapacity(1);
     testing.expect(container.capacity() >= 1);
     try container.growCapacity(10);
@@ -176,7 +176,7 @@ test "NodeKeyValueStorage grow capacity" {
 test "NodeKeyValueStorage ensure capacity" {
     var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
     defer container.deinit();
-    testing.expect(container.capacity() == 0);
+    testing.expectEqual(container.capacity(), 0);
     try container.ensureCapacity(10);
     testing.expect(container.capacity() >= 10);
     try container.ensureCapacity(0);
@@ -194,10 +194,10 @@ test "NodeKeyValueStorage get nodes" {
     try container.append(2, 3.0, 4);
     try container.append(3, 4.0, 5);
 
-    testing.expect(container.nodeAt(0) == 0);
-    testing.expect(container.nodeAt(1) == 1);
-    testing.expect(container.nodeAt(2) == 2);
-    testing.expect(container.nodeAt(3) == 3);
+    testing.expectEqual(container.nodeAt(0), 0);
+    testing.expectEqual(container.nodeAt(1), 1);
+    testing.expectEqual(container.nodeAt(2), 2);
+    testing.expectEqual(container.nodeAt(3), 3);
 }
 
 test "NodeKeyValueStorage get keys" {
@@ -209,10 +209,10 @@ test "NodeKeyValueStorage get keys" {
     try container.append(2, 3.0, 4);
     try container.append(3, 4.0, 5);
 
-    testing.expect(container.keyAt(0) == 1.0);
-    testing.expect(container.keyAt(1) == 2.0);
-    testing.expect(container.keyAt(2) == 3.0);
-    testing.expect(container.keyAt(3) == 4.0);
+    testing.expectEqual(container.keyAt(0), 1.0);
+    testing.expectEqual(container.keyAt(1), 2.0);
+    testing.expectEqual(container.keyAt(2), 3.0);
+    testing.expectEqual(container.keyAt(3), 4.0);
 }
 
 test "NodeKeyValueStorage get values" {
@@ -224,10 +224,10 @@ test "NodeKeyValueStorage get values" {
     try container.append(2, 3.0, 4);
     try container.append(3, 4.0, 5);
 
-    testing.expect(container.valueAt(0) == 2);
-    testing.expect(container.valueAt(1) == 3);
-    testing.expect(container.valueAt(2) == 4);
-    testing.expect(container.valueAt(3) == 5);
+    testing.expectEqual(container.valueAt(0), 2);
+    testing.expectEqual(container.valueAt(1), 3);
+    testing.expectEqual(container.valueAt(2), 4);
+    testing.expectEqual(container.valueAt(3), 5);
 }
 
 test "NodeKeyValueStorage don't grow capacity if not needed" {
@@ -235,9 +235,9 @@ test "NodeKeyValueStorage don't grow capacity if not needed" {
     defer container.deinit();
 
     try container.setCapacity(10);
-    testing.expect(container.capacity() == 10);
+    testing.expectEqual(container.capacity(), 10);
     try container.append(3, 4.0, 5);
-    testing.expect(container.capacity() == 10);
+    testing.expectEqual(container.capacity(), 10);
 }
 
 test "NodeKeyValueStorage pop back" {
@@ -249,13 +249,13 @@ test "NodeKeyValueStorage pop back" {
     try container.append(2, 3.0, 4);
     try container.append(3, 4.0, 5);
 
-    testing.expect(container.size() == 4);
+    testing.expectEqual(container.size(), 4);
     container.popBack();
-    testing.expect(container.size() == 3);
-    testing.expect(container.keyAt(0) == 1.0);
-    testing.expect(container.valueAt(0) == 2);
-    testing.expect(container.keyAt(1) == 2.0);
-    testing.expect(container.valueAt(1) == 3);
-    testing.expect(container.keyAt(2) == 3.0);
-    testing.expect(container.valueAt(2) == 4);
+    testing.expectEqual(container.size(), 3);
+    testing.expectEqual(container.keyAt(0), 1.0);
+    testing.expectEqual(container.valueAt(0), 2);
+    testing.expectEqual(container.keyAt(1), 2.0);
+    testing.expectEqual(container.valueAt(1), 3);
+    testing.expectEqual(container.keyAt(2), 3.0);
+    testing.expectEqual(container.valueAt(2), 4);
 }

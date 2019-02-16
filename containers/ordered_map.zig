@@ -293,8 +293,8 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             if (self.getNode(key)) |node_in| {
                 var node = node_in;
                 if (node.successor()) |successor| {
-                    testing.expect(successor != node);
-                    testing.expect(successor.left_child == null);
+                    debug.assert(successor != node);
+                    debug.assert(successor.left_child == null);
                     node.key = successor.key;
                     node.value = successor.value;
                     node = successor;
@@ -306,7 +306,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
 
 
                 // Node is a external node with no successor, so assign the left node to the parent
-                testing.expect(node.right_child == null);
+                debug.assert(node.right_child == null);
                 var parent_node = node.parent;
                 if (parent_node) |parent| {
                     const which_child = parent.right_child == node;
@@ -377,7 +377,7 @@ test "OrderedMap initialization" {
     defer container.deinit();
 
     testing.expect(container.empty());
-    testing.expect(container.count() == 0);
+    testing.expectEqual(container.count(), 0);
 }
 
 test "OrderedMap insert" {
@@ -385,10 +385,10 @@ test "OrderedMap insert" {
     defer container.deinit();
 
     try container.insert(2, 1.5);
-    testing.expect(container.count() == 1);
+    testing.expectEqual(container.count(), 1);
     testing.expect(!container.empty());
     try container.insert(3, 2.5);
-    testing.expect(container.count() == 2);
+    testing.expectEqual(container.count(), 2);
     testing.expect(!container.empty());
     testing.expectError(error.KeyAlreadyExists, container.insert(2, 3.0));
 }
@@ -404,7 +404,7 @@ test "OrderedMap clear" {
     testing.expect(container.count() != 0);
     container.clear();
     testing.expect(container.empty());
-    testing.expect(container.count() == 0);
+    testing.expectEqual(container.count(), 0);
 }
 
 test "OrderedMap exists" {
@@ -424,8 +424,8 @@ test "OrderedMap get" {
     testing.expect(container.get(2) == null);
     try container.insert(2, 1.5);
     try container.insert(3, 2.5);
-    testing.expect(container.get(2).?.* == 1.5);
-    testing.expect(container.get(3).?.* == 2.5);
+    testing.expectEqual(container.get(2).?.*, 1.5);
+    testing.expectEqual(container.get(3).?.*, 2.5);
 }
 
 test "OrderedMap Iterator" {
@@ -451,10 +451,10 @@ test "OrderedMap Iterator" {
     var iterator = container.iterator();
     var i = u32(0);
     while (iterator.next()) |next| : (i += 1) {
-        testing.expect(next.key() == ordered_keys[i]);
-        testing.expect(next.value() == ordered_values[i]);
+        testing.expectEqual(next.key(), ordered_keys[i]);
+        testing.expectEqual(next.value(), ordered_values[i]);
     }
-    testing.expect(i == container.count());
+    testing.expectEqual(usize(i), container.count());
 
     //debug.warn("Header is {} bytes\n", usize(@sizeOf(OrderedMap(u32,u32,less_u32).Header)));
 }
@@ -475,7 +475,7 @@ test "OrderedMap remove" {
     testing.expect(container.remove(4));
     testing.expect(!container.exists(4));
 
-    testing.expect(container.count() == 1);
+    testing.expectEqual(container.count(), 1);
 }
 
 test "OrderedMap insert remove many" {

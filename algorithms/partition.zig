@@ -35,7 +35,7 @@ pub fn partition(comptime T : type, data: []T, comptime predicate: fn (element: 
             end -= 1;
         }
     }
-    testing.expect(begin == end);
+    testing.expectEqual(begin, end);
     return begin;
 }
 
@@ -221,7 +221,7 @@ test "partition" {
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expect(std.mem.eql(i64, original, values));
+    testing.expectEqualSlices(i64, original, values);
 }
 
 test "partition with 2 values" {
@@ -240,12 +240,12 @@ test "partition with 2 values" {
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expect(std.mem.eql(i64, original, values));
+    testing.expectEqualSlices(i64, original, values);
 }
 
 fn testDualPivotPartition(values: []i64, pivot_value1: i64, pivot_value2: i64) void {
     var original = values;
-    const pair = dualPivotPartition(i64, values[0..], pivot_value1, pivot_value2, lessThan);
+    const pair = dualPivotPartition(i64, values, pivot_value1, pivot_value2, lessThan);
     const smaller = values[0..pair.first];
     const middle = values[pair.first..pair.second];
     const greater = values[pair.second..];
@@ -263,9 +263,9 @@ fn testDualPivotPartition(values: []i64, pivot_value1: i64, pivot_value2: i64) v
     }
 
     // check if we still have all the right values
-    std.sort.insertionSort(i64, values[0..], lessThan);
-    std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expect(std.mem.eql(i64, original, values));
+    std.sort.insertionSort(i64, values, lessThan);
+    std.sort.insertionSort(i64, original, lessThan);
+    testing.expectEqualSlices(i64, original, values);
 }
 
 test "DualPivotPartition" {
@@ -304,5 +304,5 @@ test "NthElement" {
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expect(std.mem.eql(i64, original, values));
+    testing.expectEqualSlices(i64, original, values);
 }

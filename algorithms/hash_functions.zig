@@ -184,7 +184,7 @@ test "murBasHash" {
 test "bytestreamHash" {
     const string = "Bla die bla die bla die bla blablablabla.";
     testing.expect(bytestreamHash(string, 42) != 0);
-    testing.expect(bytestreamHash(string, 42) == 1641407811188335103);
+    testing.expectEqual(bytestreamHash(string, 42), 1641407811188335103);
 }
 
 test "shortHash" {
