@@ -191,9 +191,37 @@ fn createTestMessages(comptime message_count : usize) [message_count]TestMessage
 }
 
 
-fn asByteSlice(x: var) []const u8 {
-    const T = @typeOf(x);
-    return @sliceToBytes(([]const T{x})[0..1]);
+fn asByteSlice(comptime T: type, x: *const T) []const u8 {
+    return @sliceToBytes(@ptrCast([*]const T, x)[0..1]);
+}
+
+test "push pull messages" {
+    var buffer = try BipartiteBuffer().init(debug.global_allocator, 100);
+    defer buffer.deinit();
+
+    var i: u8 = 0;
+    while (i < 10) {
+        i += 1;
+        var message = try buffer.reserve(10);
+        for (message[0..10]) |*e, j| {
+            e.* = @intCast(u8, j + i * 10);
+        }
+        try buffer.commit(10);
+    }
+    i = 0;
+    while (i < 10) {
+        const peek = buffer.peek();
+        testing.expectEqual(usize((10 - i) * 10), peek.len);
+        i += 1;
+        for (peek) |e, j| {
+            testing.expectEqual(e, @intCast(u8, j + i * 10));
+        }
+        const read = buffer.readBlock();
+        for (read) |e, j| {
+            testing.expectEqual(e, @intCast(u8, j + i * 10));
+        }
+        try buffer.release(10);
+    }
 }
 
 test "fill and drain BipartiteBuffer" {
@@ -210,7 +238,7 @@ test "fill and drain BipartiteBuffer" {
         testing.expect(reserved.len >= message_size);
         testing.expect(reserved.ptr == buffer.reserved.ptr);
         testing.expectEqual(reserved.len, buffer.reserved.len);
-        std.mem.copy(u8, reserved[0..message_size], asByteSlice(test_message));
+        std.mem.copy(u8, reserved[0..message_size], asByteSlice(TestMessage, &test_message));
         try buffer.commit(message_size);
         testing.expectEqual(buffer.size(), message_size * (i + 1));
     }
@@ -220,16 +248,16 @@ test "fill and drain BipartiteBuffer" {
         testing.expect(reserved.len >= message_size);
         testing.expect(reserved.ptr == buffer.reserved.ptr);
         testing.expectEqual(reserved.len, buffer.reserved.len);
-        std.mem.copy(u8, reserved[0..message_size], asByteSlice(test_message));
+        std.mem.copy(u8, reserved[0..message_size], asByteSlice(TestMessage, &test_message));
         try buffer.commit(message_size);
         testing.expectEqual(buffer.size(), message_size * (message_count/4 + 1));
 
         var peek = buffer.peek();
         testing.expect(peek.len >= message_size);
-        testing.expect(std.mem.eql(u8, peek[0..message_size], asByteSlice(test_messages[i])));
+        testing.expectEqualSlices(u8, peek[0..message_size], asByteSlice(TestMessage, &test_messages[i]));
         var block = buffer.readBlock();
         testing.expect(block.len >= message_size);
-        testing.expect(std.mem.eql(u8, block[0..message_size], asByteSlice(test_messages[i])));
+        testing.expectEqualSlices(u8, block[0..message_size], asByteSlice(TestMessage, &test_messages[i]));
         try buffer.release(message_size);
         testing.expectEqual(buffer.size(), message_size * (message_count/4));
     }
@@ -237,10 +265,10 @@ test "fill and drain BipartiteBuffer" {
     for (test_messages[message_count-message_count/4..]) |test_message, i| {
         var peek = buffer.peek();
         testing.expect(peek.len >= message_size);
-        testing.expect(std.mem.eql(u8, peek[0..message_size], asByteSlice(test_message)));
+        testing.expectEqualSlices(u8, peek[0..message_size], asByteSlice(TestMessage, &test_message));
         var block = buffer.readBlock();
         testing.expect(block.len >= message_size);
-        testing.expect(std.mem.eql(u8, block[0..message_size], asByteSlice(test_message)));
+        testing.expectEqualSlices(u8, block[0..message_size], asByteSlice(TestMessage, &test_message));
         try buffer.release(message_size);
         testing.expectEqual(buffer.size(), message_size * (message_count/4 - i - 1));
     }
