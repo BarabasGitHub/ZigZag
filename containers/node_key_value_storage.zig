@@ -3,8 +3,8 @@ const debug = std.debug;
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
-fn alignPointer(comptime Type: type, p: [*]u8) [*]Type {
-    return @intToPtr([*]Type, (@ptrToInt(p) + @alignOf(Type) - 1) & ~(usize(@alignOf(Type) - 1)));
+fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
+    return ((@ptrToInt(p) + @alignOf(Type) - 1) & ~(usize(@alignOf(Type) - 1))) - @ptrToInt(p);
 }
 
 pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Value: type) type {
@@ -91,7 +91,10 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn keys(self: Self) []Key {
-            return alignPointer(Key, self.node_key_value_storage.ptr + self.capacity() * @sizeOf(Node))[0..self.storage_size];
+            const start_offset = self.capacity() * @sizeOf(Node);
+            const offset = alignPointerOffset(Key, self.node_key_value_storage.ptr + start_offset) + start_offset;
+            const key_data_slice = self.node_key_value_storage[offset.. offset + self.capacity() * @sizeOf(Key)];
+            return @alignCast(@alignOf(Key), @bytesToSlice(Key, key_data_slice));
         }
 
         pub fn keyAt(self: Self, index: usize) Key {
@@ -99,7 +102,10 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn values(self: Self) []Value {
-            return alignPointer(Value, self.node_key_value_storage.ptr + self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + @alignOf(Key))[0..self.storage_size];
+            const start_offset = self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + (@alignOf(Key) * usize(@boolToInt(!self.empty())));
+            const offset = alignPointerOffset(Value, self.node_key_value_storage.ptr + start_offset) + start_offset;
+            const value_data_slice = self.node_key_value_storage[offset.. offset + self.capacity() * @sizeOf(Value)];
+            return @alignCast(@alignOf(Value), @bytesToSlice(Value, value_data_slice));
         }
 
         pub fn valueAt(self: Self, index: usize) Value {
