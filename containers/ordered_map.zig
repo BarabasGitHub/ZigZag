@@ -4,24 +4,23 @@ const debug = std.debug;
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
-
 pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a: Key, b: Key) bool) type {
     return struct {
         pub const Node = struct {
-            level : u8,
-            parent : ?*Node,
-            left_child : ?*Node,
-            right_child : ?*Node,
-            key : Key,
-            value : Value,
+            level: u8,
+            parent: ?*Node,
+            left_child: ?*Node,
+            right_child: ?*Node,
+            key: Key,
+            value: Value,
 
-            pub fn initRoot(self : *Node, key : Key, value : Value) void {
+            pub fn initRoot(self: *Node, key: Key, value: Value) void {
                 self.init(0, null, null, null, key, value);
             }
-            pub fn initLeaf(self : *Node, parent : ?*Node, key : Key, value : Value) void {
+            pub fn initLeaf(self: *Node, parent: ?*Node, key: Key, value: Value) void {
                 self.init(0, parent, null, null, key, value);
             }
-            pub fn init(self: *Node, level: u8, parent : ?*Node, left_child : ?*Node, right_child : ?*Node, key : Key, value : Value) void {
+            pub fn init(self: *Node, level: u8, parent: ?*Node, left_child: ?*Node, right_child: ?*Node, key: Key, value: Value) void {
                 self.level = level;
                 self.parent = parent;
                 self.left_child = left_child;
@@ -29,13 +28,31 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                 self.key = key;
                 self.value = value;
             }
-            pub fn children(self: * Node, i: u1) *?*Node {return switch(i){ 0 => &self.left_child, 1=> &self.right_child, else=> unreachable,};}
-            pub fn hasRightChild(self: Node) bool {return self.right_child != null;}
-            pub fn hasLeftChild(self: Node) bool {return self.left_child != null;}
-            pub fn hasParent(self: Node) bool {return self.parent != null;}
-            pub fn isChild(self: * const Node, leftRight: u1) bool { return self.parent != null and self.parent.?.children(leftRight).* == (?*const Node)(self); }
-            pub fn isLeftChild(self: * const Node) bool { return self.isChild(0); }
-            pub fn isRightChild(self: * const Node) bool { return self.isChild(1); }
+            pub fn children(self: *Node, i: u1) *?*Node {
+                return switch (i) {
+                    0 => &self.left_child,
+                    1 => &self.right_child,
+                    else => unreachable,
+                };
+            }
+            pub fn hasRightChild(self: Node) bool {
+                return self.right_child != null;
+            }
+            pub fn hasLeftChild(self: Node) bool {
+                return self.left_child != null;
+            }
+            pub fn hasParent(self: Node) bool {
+                return self.parent != null;
+            }
+            pub fn isChild(self: *const Node, leftRight: u1) bool {
+                return self.parent != null and self.parent.?.children(leftRight).* == (?*const Node)(self);
+            }
+            pub fn isLeftChild(self: *const Node) bool {
+                return self.isChild(0);
+            }
+            pub fn isRightChild(self: *const Node) bool {
+                return self.isChild(1);
+            }
             pub fn successor(node: *Node) ?*Node {
                 if (node.right_child) |right| {
                     return right.allTheWayLeft();
@@ -45,7 +62,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
 
             pub fn allTheWayLeft(start_node: *Node) *Node {
                 var node = start_node;
-                while(node.left_child) |next| {
+                while (node.left_child) |next| {
                     node = next;
                 }
                 return node;
@@ -76,7 +93,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             pub fn split(root: *Node) *Node {
                 var new_root = root;
                 if (root.right_child) |right| {
-                    if(right.right_child) |right_right| {
+                    if (right.right_child) |right_right| {
                         if (right_right.level == root.level) {
                             new_root = root.rotate(0);
                             new_root.level += 1;
@@ -104,38 +121,37 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         const Self = @This();
 
         pub const Iterator = struct {
-
             const Origin = enum(u1) {
                 Left,
-                Right
+                Right,
             };
 
-            node : ?*Node,
+            node: ?*Node,
             origin: Origin,
 
             pub const KeyValueReference = struct {
-                node : *Node,
+                node: *Node,
 
-                pub fn key(self: * const KeyValueReference) Key {
+                pub fn key(self: *const KeyValueReference) Key {
                     return self.node.key;
                 }
 
-                pub fn value(self: * const KeyValueReference) Value {
+                pub fn value(self: *const KeyValueReference) Value {
                     return self.node.value;
                 }
             };
 
-            pub fn current(self: * const Iterator) ?KeyValueReference {
-                if (self.node) |node|{
-                    return KeyValueReference{.node=node};
+            pub fn current(self: *const Iterator) ?KeyValueReference {
+                if (self.node) |node| {
+                    return KeyValueReference{ .node = node };
                 } else {
                     return null;
                 }
             }
 
-            pub fn next(self : *Iterator) ?KeyValueReference {
+            pub fn next(self: *Iterator) ?KeyValueReference {
                 const result = self.current() orelse return null;
-                if (self.origin == Origin.Left){
+                if (self.origin == Origin.Left) {
                     if (self.node.?.successor()) |successor| {
                         self.node = successor;
                         return result;
@@ -166,7 +182,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             };
         }
 
-        pub fn deinit(self: * Self) void {
+        pub fn deinit(self: *Self) void {
             self.clear();
         }
 
@@ -178,12 +194,12 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             return self.size;
         }
 
-        pub fn clear(self: * Self) void {
+        pub fn clear(self: *Self) void {
             var next = self.root;
-            while(next != null) {
+            while (next != null) {
                 var node = next.?;
                 // go down, first left then right
-                while(next != null) {
+                while (next != null) {
                     node = next.?;
                     // find the leftmost node
                     node = node.allTheWayLeft();
@@ -206,7 +222,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             self.size = 0;
         }
 
-        pub fn insert(self: * Self, key: Key, value: Value) !void {
+        pub fn insert(self: *Self, key: Key, value: Value) !void {
             if (self.empty()) {
                 var new_node = try self.allocator.create(Node);
                 new_node.initRoot(key, value);
@@ -226,7 +242,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                 }
                 var node = insertion_point;
                 var next: ?*Node = node;
-                while(next != null) {
+                while (next != null) {
                     node = next.?;
                     node = node.skew();
                     node = node.split();
@@ -241,7 +257,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
             testing.expect(!self.empty());
             var next = self.root;
             var node = next.?;
-            while(next != null) {
+            while (next != null) {
                 node = next.?;
                 if (less(node.key, key)) {
                     next = node.right_child;
@@ -259,7 +275,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         }
 
         pub fn get(self: Self, key: Key) ?*Value {
-            if (self.getNode(key)) |node|{
+            if (self.getNode(key)) |node| {
                 return &node.value;
             } else {
                 return null;
@@ -269,10 +285,10 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         fn getNode(self: Self, key: Key) ?*Node {
             if (self.empty()) return null;
             var node = self.root;
-            while(node != null) {
+            while (node != null) {
                 if (less(node.?.key, key)) {
                     node = node.?.right_child;
-                } else if(less(key, node.?.key)) {
+                } else if (less(key, node.?.key)) {
                     node = node.?.left_child;
                 } else {
                     return node;
@@ -289,7 +305,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
         }
 
         // return false if it wasn't there
-        pub fn remove(self: * Self, key: Key) bool {
+        pub fn remove(self: *Self, key: Key) bool {
             if (self.getNode(key)) |node_in| {
                 var node = node_in;
                 if (node.successor()) |successor| {
@@ -304,7 +320,6 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                     std.mem.swap(?*Node, &node.left_child, &node.right_child);
                 }
 
-
                 // Node is a external node with no successor, so assign the left node to the parent
                 debug.assert(node.right_child == null);
                 var parent_node = node.parent;
@@ -315,15 +330,15 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                     self.root = node.left_child;
                 }
                 // fix up the parent of the (left) child
-                if(node.left_child) |left_child| {
+                if (node.left_child) |left_child| {
                     left_child.parent = parent_node;
                 }
                 self.allocator.destroy(node);
                 if (parent_node != null) {
                     var previous_parent = parent_node.?;
-                    while(parent_node != null) {
+                    while (parent_node != null) {
                         var parent = parent_node.?;
-                        if(parent.level > 0) {
+                        if (parent.level > 0) {
                             const level = parent.level - 1;
                             const right = parent.right_child;
                             if ((right != null and level > right.?.level) or
@@ -439,15 +454,15 @@ test "OrderedMap Iterator" {
         testing.expect(iterator.next() == null);
     }
 
-    const keys = []u32{2, 3, 1};
-    const values = []f64{1.5, 2.5, 3.5};
+    const keys = [_]u32{ 2, 3, 1 };
+    const values = [_]f64{ 1.5, 2.5, 3.5 };
 
     for (keys) |key, i| {
         try container.insert(key, values[i]);
     }
 
-    const ordered_keys = []u32{1,2,3};
-    const ordered_values = []f64{3.5, 1.5, 2.5};
+    const ordered_keys = [_]u32{ 1, 2, 3 };
+    const ordered_values = [_]f64{ 3.5, 1.5, 2.5 };
     var iterator = container.iterator();
     var i = u32(0);
     while (iterator.next()) |next| : (i += 1) {
@@ -479,9 +494,8 @@ test "OrderedMap remove" {
 }
 
 test "OrderedMap insert remove many" {
-    var allocator = std.heap.DirectAllocator.init();
-    defer allocator.deinit();
-    var container = OrderedMap(u32, f64, less_u32).init(&allocator.allocator);
+    var allocator = std.heap.direct_allocator;
+    var container = OrderedMap(u32, f64, less_u32).init(allocator);
     defer container.deinit();
 
     const many = 1000;
@@ -519,9 +533,7 @@ fn levelsOk(flatMap: var, node0: *@typeOf(flatMap).Node) bool {
 }
 
 test "OrderedMap levels" {
-    var allocator = std.heap.DirectAllocator.init();
-    defer allocator.deinit();
-    var container = OrderedMap(u32, f64, less_u32).init(&allocator.allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(std.heap.direct_allocator);
     defer container.deinit();
 
     const many = 1000;
@@ -538,5 +550,4 @@ test "OrderedMap levels" {
             testing.expect(levelsOk(container, next.node));
         }
     }
-
 }

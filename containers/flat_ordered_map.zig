@@ -4,20 +4,35 @@ const debug = std.debug;
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
-
 pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a: Key, b: Key) bool) type {
     return struct {
         pub const Header = struct {
-            level : u8,
-            parent : u64,
-            left_child : u64,
-            right_child : u64,
-            pub fn children(self: * Header, i: u1) *u64 {return switch(i){ 0 => self.left(), 1=> self.right(), else=> unreachable,};}
-            pub fn left(self: * Header) *u64 {return &self.left_child;}
-            pub fn right(self: * Header) *u64 {return &self.right_child;}
-            pub fn hasRightChild(self: Header) bool {return self.right_child != invalid_index;}
-            pub fn hasLeftChild(self: Header) bool {return self.left_child != invalid_index;}
-            pub fn hasParent(self: Header) bool {return self.parent != invalid_index;}
+            level: u8,
+            parent: u64,
+            left_child: u64,
+            right_child: u64,
+            pub fn children(self: *Header, i: u1) *u64 {
+                return switch (i) {
+                    0 => self.left(),
+                    1 => self.right(),
+                    else => unreachable,
+                };
+            }
+            pub fn left(self: *Header) *u64 {
+                return &self.left_child;
+            }
+            pub fn right(self: *Header) *u64 {
+                return &self.right_child;
+            }
+            pub fn hasRightChild(self: Header) bool {
+                return self.right_child != invalid_index;
+            }
+            pub fn hasLeftChild(self: Header) bool {
+                return self.left_child != invalid_index;
+            }
+            pub fn hasParent(self: Header) bool {
+                return self.parent != invalid_index;
+            }
         };
         const invalid_index = std.math.maxInt(u64);
         storage: NodeKeyValueStorage(Header, Key, Value),
@@ -26,41 +41,40 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
         const Self = @This();
 
         pub const Iterator = struct {
-
             const Origin = enum(u1) {
                 Left,
-                Right
+                Right,
             };
 
-            container: * const Self,
-            index : ?u64,
+            container: *const Self,
+            index: ?u64,
             origin: Origin,
 
             pub const KeyValueReference = struct {
-                index : u64,
-                container: * const Self,
+                index: u64,
+                container: *const Self,
 
-                pub fn key(self: * const KeyValueReference) Key {
+                pub fn key(self: *const KeyValueReference) Key {
                     return self.container.storage.keyAt(self.index);
                 }
 
-                pub fn value(self: * const KeyValueReference) Value {
+                pub fn value(self: *const KeyValueReference) Value {
                     return self.container.storage.valueAt(self.index);
                 }
             };
 
-            pub fn current(self: * const Iterator) ?KeyValueReference {
-                if (self.index) |index|{
-                    return KeyValueReference{.index = index, .container = self.container};
+            pub fn current(self: *const Iterator) ?KeyValueReference {
+                if (self.index) |index| {
+                    return KeyValueReference{ .index = index, .container = self.container };
                 } else {
                     return null;
                 }
             }
 
-            pub fn next(self : *Iterator) ?KeyValueReference {
+            pub fn next(self: *Iterator) ?KeyValueReference {
                 const result = self.current() orelse return null;
                 const headers = self.container.storage.nodes();
-                if (self.origin == Origin.Left){
+                if (self.origin == Origin.Left) {
                     if (self.container.successor(self.index.?)) |successor_index| {
                         self.index = successor_index;
                         return result;
@@ -103,7 +117,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             };
         }
 
-        pub fn deinit(self: * Self) void {
+        pub fn deinit(self: *Self) void {
             self.storage.deinit();
         }
 
@@ -119,31 +133,46 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             return self.storage.capacity();
         }
 
-        pub fn ensureCapacity(self: * Self, new_capacity: usize) !void {
+        pub fn ensureCapacity(self: *Self, new_capacity: usize) !void {
             try self.storage.ensureCapacity(new_capacity);
         }
 
-        pub fn clear(self: * Self) void {
+        pub fn clear(self: *Self) void {
             self.root = invalid_index;
             self.storage.clear();
         }
 
-        pub fn insert(self: * Self, key: Key, value: Value) !void {
+        pub fn insert(self: *Self, key: Key, value: Value) !void {
             if (self.empty()) {
                 self.root = 0;
-                try self.storage.append(Header{.level=0, .parent=invalid_index, .left_child=invalid_index, .right_child=invalid_index,}, key, value);
+                try self.storage.append(Header{
+                    .level = 0,
+                    .parent = invalid_index,
+                    .left_child = invalid_index,
+                    .right_child = invalid_index,
+                }, key, value);
             } else {
                 const insertion_point = self.findInsertionPoint(key);
                 const keys = self.storage.keys();
                 var headers: []Header = undefined;
                 if (less(key, keys[insertion_point])) {
                     const size = @intCast(u64, self.storage.size());
-                    try self.storage.append(Header{.level=0, .parent=insertion_point, .left_child=invalid_index, .right_child=invalid_index,}, key, value);
+                    try self.storage.append(Header{
+                        .level = 0,
+                        .parent = insertion_point,
+                        .left_child = invalid_index,
+                        .right_child = invalid_index,
+                    }, key, value);
                     headers = self.storage.nodes();
                     headers[insertion_point].left_child = size;
                 } else if (less(keys[insertion_point], key)) {
                     const size = @intCast(u64, self.storage.size());
-                    try self.storage.append(Header{.level=0, .parent=insertion_point, .left_child=invalid_index, .right_child=invalid_index,}, key, value);
+                    try self.storage.append(Header{
+                        .level = 0,
+                        .parent = insertion_point,
+                        .left_child = invalid_index,
+                        .right_child = invalid_index,
+                    }, key, value);
                     headers = self.storage.nodes();
                     headers[insertion_point].right_child = size;
                 } else {
@@ -151,7 +180,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
                 }
                 var node = insertion_point;
                 var next = node;
-                while(next != invalid_index) {
+                while (next != invalid_index) {
                     node = next;
                     node = self.skew(node);
                     node = self.split(node);
@@ -167,7 +196,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             var headers = self.storage.nodes();
             var index = self.root;
             var next = index;
-            while(next != invalid_index) {
+            while (next != invalid_index) {
                 index = next;
                 if (less(keys[index], key)) {
                     next = headers[index].right().*;
@@ -185,7 +214,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
         }
 
         pub fn get(self: Self, key: Key) ?*Value {
-            if (self.getIndex(key)) |i|{
+            if (self.getIndex(key)) |i| {
                 return &self.storage.values()[i];
             } else {
                 return null;
@@ -197,10 +226,10 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             const keys = self.storage.keys();
             const headers = self.storage.nodes();
             var index = self.root;
-            while(index != invalid_index) {
+            while (index != invalid_index) {
                 if (less(keys[index], key)) {
                     index = headers[index].right().*;
-                } else if(less(key, keys[index])) {
+                } else if (less(key, keys[index])) {
                     index = headers[index].left().*;
                 } else {
                     return index;
@@ -218,7 +247,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
         }
 
         // return false if it wasn't there
-        pub fn remove(self: * Self, key: Key) bool {
+        pub fn remove(self: *Self, key: Key) bool {
             if (self.getIndex(key)) |index_in| {
                 var index = @intCast(u64, index_in);
                 const headers = self.storage.nodes();
@@ -236,19 +265,17 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
                     std.mem.swap(u64, headers[index].left(), headers[index].right());
                 }
 
-
                 // Node is a external index with no successor, so assign the left index to the parent
                 testing.expectEqual(headers[index].right().*, invalid_index);
                 var parent_index = headers[index].parent;
-                if (parent_index != invalid_index){
+                if (parent_index != invalid_index) {
                     const which_child = headers[parent_index].right().* == index;
                     headers[parent_index].children(@boolToInt(which_child)).* = headers[index].left().*;
                 } else {
                     self.root = headers[index].left().*;
                 }
                 // fix up the parent of the (left) child
-                if(headers[index].left().* != invalid_index)
-                {
+                if (headers[index].left().* != invalid_index) {
                     headers[headers[index].left().*].parent = parent_index;
                 }
                 // move the last node to the 'index' node and remove the last node
@@ -282,8 +309,8 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
                 }
                 if (parent_index != invalid_index) {
                     var previous_parent = parent_index;
-                    while(parent_index != invalid_index) {
-                        if(headers[parent_index].level > 0) {
+                    while (parent_index != invalid_index) {
+                        if (headers[parent_index].level > 0) {
                             const level = headers[parent_index].level - 1;
                             const right = headers[parent_index].right().*;
                             if ((right != invalid_index and level > headers[right].level) or
@@ -334,7 +361,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             const headers = self.storage.nodes();
             var next = headers[index].left().*;
             // find the leftmost index
-            while(next != invalid_index) {
+            while (next != invalid_index) {
                 index = next;
                 next = headers[index].left().*;
             }
@@ -345,7 +372,6 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             if (self.empty()) return null;
             return self.allTheWayLeft(self.root);
         }
-
 
         fn rotate(self: *const Self, root: u64, direction: u1) u64 {
             var headers = self.storage.nodes();
@@ -376,7 +402,7 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             const right = headers[root].right().*;
             if (right != invalid_index) {
                 const right_right = headers[right].right().*;
-                if(right_right != invalid_index and headers[right_right].level == headers[root].level) {
+                if (right_right != invalid_index and headers[right_right].level == headers[root].level) {
                     new_root = self.rotate(root, 0);
                     headers[new_root].level += 1;
                 }
@@ -392,7 +418,6 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
             }
             return new_root;
         }
-
     };
 }
 
@@ -488,15 +513,15 @@ test "FlatOrderedMap Iterator" {
         testing.expect(iterator.next() == null);
     }
 
-    const keys = []u32{2, 3, 1};
-    const values = []f64{1.5, 2.5, 3.5};
+    const keys = [_]u32{ 2, 3, 1 };
+    const values = [_]f64{ 1.5, 2.5, 3.5 };
 
     for (keys) |key, i| {
         try container.insert(key, values[i]);
     }
 
-    const ordered_keys = []u32{1,2,3};
-    const ordered_values = []f64{3.5, 1.5, 2.5};
+    const ordered_keys = [_]u32{ 1, 2, 3 };
+    const ordered_values = [_]f64{ 3.5, 1.5, 2.5 };
     var iterator = container.iterator();
     var i = u32(0);
     while (iterator.next()) |next| : (i += 1) {
@@ -592,5 +617,4 @@ test "FlatOrderedMap levels" {
             testing.expect(levelsOk(container, next.index));
         }
     }
-
 }

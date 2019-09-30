@@ -9,16 +9,16 @@ fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
 
 pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Value: type) type {
     return struct {
-        node_key_value_storage : [] align(@alignOf(Node)) u8,
-        storage_size : usize,
-        allocator : *Allocator,
+        node_key_value_storage: []align(@alignOf(Node)) u8,
+        storage_size: usize,
+        allocator: *Allocator,
 
         const Self = @This();
 
         pub fn init(allocator: *Allocator) Self {
             //debug.warn("Alignement of storage is {}", usize(@alignOf(Node)));
-            return Self {
-                .node_key_value_storage = []u8{},
+            return Self{
+                .node_key_value_storage = [_]u8{},
                 .storage_size = 0,
                 .allocator = allocator,
             };
@@ -40,11 +40,11 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
             return self.node_key_value_storage.len / (@sizeOf(Node) + @sizeOf(Key) + @sizeOf(Value));
         }
 
-        pub fn clear(self: * Self) void {
+        pub fn clear(self: *Self) void {
             self.storage_size = 0;
         }
 
-        pub fn append(self: * Self, node: Node, key: Key, value: Value) !void {
+        pub fn append(self: *Self, node: Node, key: Key, value: Value) !void {
             const old_size = self.storage_size;
             const new_size = old_size + 1;
             try self.ensureCapacity(new_size);
@@ -54,19 +54,19 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
             self.values()[old_size] = value;
         }
 
-        pub fn growCapacity(self: * Self, amount: usize) !void {
+        pub fn growCapacity(self: *Self, amount: usize) !void {
             const old_capacity = self.capacity();
             const new_capacity = old_capacity + std.math.max(old_capacity / 2, amount);
             try self.setCapacity(new_capacity);
         }
 
-        pub fn ensureCapacity(self: * Self, new_capacity: usize) !void {
+        pub fn ensureCapacity(self: *Self, new_capacity: usize) !void {
             if (new_capacity > self.capacity()) {
                 try self.growCapacity(new_capacity - self.capacity());
             }
         }
 
-        pub fn setCapacity(self: * Self, new_capacity: usize) !void {
+        pub fn setCapacity(self: *Self, new_capacity: usize) !void {
             const old_nodes = self.nodes();
             const old_keys = self.keys();
             const old_values = self.values();
@@ -83,7 +83,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn nodes(self: Self) []Node {
-            return @bytesToSlice(Node, self.node_key_value_storage[0..self.storage_size * @sizeOf(Node)]);
+            return @bytesToSlice(Node, self.node_key_value_storage[0 .. self.storage_size * @sizeOf(Node)]);
         }
 
         pub fn nodeAt(self: Self, index: usize) Node {
@@ -93,7 +93,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         pub fn keys(self: Self) []Key {
             const start_offset = self.capacity() * @sizeOf(Node);
             const offset = alignPointerOffset(Key, self.node_key_value_storage.ptr + start_offset) + start_offset;
-            const key_data_slice = self.node_key_value_storage[offset.. offset + self.capacity() * @sizeOf(Key)];
+            const key_data_slice = self.node_key_value_storage[offset .. offset + self.capacity() * @sizeOf(Key)];
             return @alignCast(@alignOf(Key), @bytesToSlice(Key, key_data_slice));
         }
 
@@ -104,7 +104,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         pub fn values(self: Self) []Value {
             const start_offset = self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + (@alignOf(Key) * usize(@boolToInt(!self.empty())));
             const offset = alignPointerOffset(Value, self.node_key_value_storage.ptr + start_offset) + start_offset;
-            const value_data_slice = self.node_key_value_storage[offset.. offset + self.capacity() * @sizeOf(Value)];
+            const value_data_slice = self.node_key_value_storage[offset .. offset + self.capacity() * @sizeOf(Value)];
             return @alignCast(@alignOf(Value), @bytesToSlice(Value, value_data_slice));
         }
 
@@ -112,12 +112,11 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
             return self.values()[index];
         }
 
-        pub fn popBack(self: * Self) void {
+        pub fn popBack(self: *Self) void {
             self.storage_size -= 1;
         }
     };
 }
-
 
 test "NodeKeyValueStorage initialization" {
     var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);

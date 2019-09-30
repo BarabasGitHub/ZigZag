@@ -6,7 +6,7 @@ const builtin = @import("builtin");
 fn dotProduct(comptime T: type, a: []const T, b: []const T) T {
     testing.expectEqual(a.len, b.len);
     var s = T(0);
-    for(a) |e,i| {
+    for (a) |e, i| {
         s += e * b[i];
     }
     return s;
@@ -14,7 +14,7 @@ fn dotProduct(comptime T: type, a: []const T, b: []const T) T {
 
 pub fn sum(comptime Type: type, input: []const Type) Type {
     var s = Type(0);
-    for(input) |i| {
+    for (input) |i| {
         s += i;
     }
     return s;
@@ -38,7 +38,6 @@ pub fn standardDeviation(comptime Type: type, input: []const Type) Type {
     return std.math.sqrt(variance(Type, input));
 }
 
-
 fn lengthOfType(comptime Type: type, input: []const Type) Type {
     return switch (@typeInfo(Type)) {
         builtin.TypeId.Int => @intCast(Type, input.len),
@@ -48,41 +47,41 @@ fn lengthOfType(comptime Type: type, input: []const Type) Type {
 }
 
 test "dotProduct" {
-    inline for ([]type{f16, f32}) |t| {
-        const a = []t{1, 2, 3};
-        const b = []t{3, 4, 5};
+    inline for ([_]type{ f16, f32 }) |t| {
+        const a = [_]t{ 1, 2, 3 };
+        const b = [_]t{ 3, 4, 5 };
         const c = dotProduct(t, a, b);
         testing.expectEqual(c, 3 + 8 + 15);
     }
 }
 
 test "sum" {
-    const a = []f32{1, 2, 3};
+    const a = [_]f32{ 1, 2, 3 };
     const b = sum(f32, a);
     testing.expectEqual(b, 1 + 2 + 3);
 }
 
 test "average" {
-    const a = []f32{1, 2, 3};
+    const a = [_]f32{ 1, 2, 3 };
     const b = average(f32, a);
     testing.expectEqual(b, sum(f32, a) / 3);
 }
 
 test "covariance" {
-    const a = []f32{1, 2, 3};
-    const b = []f32{3, 4, 5};
+    const a = [_]f32{ 1, 2, 3 };
+    const b = [_]f32{ 3, 4, 5 };
     const c = covariance(f32, a, b);
     testing.expectEqual(c, dotProduct(f32, a, b) - 3 * 2 * 4);
 }
 
 test "variance" {
-    const a = []f32{1, 2, 3};
+    const a = [_]f32{ 1, 2, 3 };
     const b = variance(f32, a);
     testing.expectEqual(b, (1 + 4 + 9) - 3 * 4);
 }
 
 test "standard deviation" {
-    const a = []f32{1, 2, 3};
+    const a = [_]f32{ 1, 2, 3 };
     const b = standardDeviation(f32, a);
     testing.expectEqual(b, std.math.sqrt(f32(2)));
 }

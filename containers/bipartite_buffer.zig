@@ -5,21 +5,21 @@ const Allocator = std.mem.Allocator;
 
 pub fn BipartiteBuffer() type {
     return struct {
-        memory : []u8,
-        primary : []u8,
-        secondary_size : usize,
-        reserved : []u8,
-        reading_size : usize,
-        allocator : *Allocator,
+        memory: []u8,
+        primary: []u8,
+        secondary_size: usize,
+        reserved: []u8,
+        reading_size: usize,
+        allocator: *Allocator,
 
         const Self = @This();
 
-        pub fn init(allocator: *Allocator, start_capacity : usize) !Self {
+        pub fn init(allocator: *Allocator, start_capacity: usize) !Self {
             var self = Self{
                 .memory = try allocator.alloc(u8, start_capacity),
                 .primary = undefined,
                 .secondary_size = 0,
-                .reserved = []u8{},
+                .reserved = [_]u8{},
                 .reading_size = 0,
                 .allocator = allocator,
             };
@@ -47,46 +47,46 @@ pub fn BipartiteBuffer() type {
             return self.primaryDataSize() > 0 and self.secondaryDataSize() == self.primaryDataStart();
         }
 
-        pub fn reserve(self: * Self, count: usize) ![]u8 {
-            if ((self.secondaryDataSize() == 0) and self.hasPrimaryExcessCapacity(count)){
+        pub fn reserve(self: *Self, count: usize) ![]u8 {
+            if ((self.secondaryDataSize() == 0) and self.hasPrimaryExcessCapacity(count)) {
                 self.reserved = self.memory[self.primaryDataEnd()..];
             } else if (self.hasSecondaryExcessCapacity(count)) {
                 self.reserved = self.memory[self.secondaryDataSize()..self.primaryDataStart()];
             } else {
-                self.reserved = []u8{};
+                self.reserved = [_]u8{};
                 return BufferReserveError.NotEnoughContigousCapacityAvailable;
             }
             return self.reserved;
         }
 
-        pub fn commit(self: * Self, count: usize) !void {
+        pub fn commit(self: *Self, count: usize) !void {
             if (count > self.reserved.len) return BufferCommitError.CommittingMoreThanReserved;
             if (self.reserved.ptr == self.primary.ptr + self.primary.len) {
-                self.primary = self.memory[self.primaryDataStart()..self.primaryDataEnd() + count];
+                self.primary = self.memory[self.primaryDataStart() .. self.primaryDataEnd() + count];
             } else {
                 std.debug.assert(self.memory.ptr + self.secondaryDataSize() == self.reserved.ptr);
                 self.secondary_size += count;
             }
-            self.reserved = []u8{};
+            self.reserved = [_]u8{};
         }
 
-        pub fn peek(self: Self) [] const u8 {
+        pub fn peek(self: Self) []const u8 {
             return self.primaryDataSlice();
         }
 
-        pub fn readBlock(self: * Self) [] const u8 {
+        pub fn readBlock(self: *Self) []const u8 {
             const data = self.primaryDataSlice();
             self.reading_size = data.len;
             return data;
         }
 
-        pub fn release(self: * Self, count: usize) !void {
-            if(count > self.reading_size) return BufferReleaseError.ReleasingMoreThanRead;
+        pub fn release(self: *Self, count: usize) !void {
+            if (count > self.reading_size) return BufferReleaseError.ReleasingMoreThanRead;
             self.discard(count) catch unreachable;
             self.reading_size = 0;
         }
 
-        pub fn discard(self: * Self, count_in: usize) !void {
+        pub fn discard(self: *Self, count_in: usize) !void {
             if (self.size() < count_in) return BufferDiscardError.DiscardingMoreThanAvailable;
             var count = count_in;
             if (count >= self.primaryDataSize()) {
@@ -97,8 +97,8 @@ pub fn BipartiteBuffer() type {
             self.primary = self.primary[count..];
         }
 
-        pub fn discardAll(self: * Self) void {
-            if (self.reserved.len == 0){
+        pub fn discardAll(self: *Self) void {
+            if (self.reserved.len == 0) {
                 self.primary = self.memory[0..0];
             } else {
                 self.primary = self.reserved[0..0];
@@ -142,22 +142,13 @@ pub fn BipartiteBuffer() type {
     };
 }
 
-const BufferReserveError = error {
-    NotEnoughContigousCapacityAvailable,
-};
+const BufferReserveError = error{NotEnoughContigousCapacityAvailable};
 
-const BufferCommitError = error {
-    CommittingMoreThanReserved,
-};
+const BufferCommitError = error{CommittingMoreThanReserved};
 
-const BufferReleaseError = error {
-    ReleasingMoreThanRead,
-};
+const BufferReleaseError = error{ReleasingMoreThanRead};
 
-const BufferDiscardError = error {
-    DiscardingMoreThanAvailable,
-};
-
+const BufferDiscardError = error{DiscardingMoreThanAvailable};
 
 test "initialized BipartiteBuffer state" {
     const capacity = 100;
@@ -174,22 +165,21 @@ test "initialized BipartiteBuffer state" {
 }
 
 const TestMessage = packed struct {
-    f : f32,
-    i : i16,
+    f: f32,
+    i: i16,
 };
 
-fn createTestMessages(comptime message_count : usize) [message_count]TestMessage {
-    comptime var test_message_value : TestMessage = undefined;
+fn createTestMessages(comptime message_count: usize) [message_count]TestMessage {
+    comptime var test_message_value: TestMessage = undefined;
     test_message_value.f = 10;
     test_message_value.i = 100;
-    var test_messages : [message_count]TestMessage = []TestMessage{test_message_value} ** message_count;
-    for (test_messages) |*test_message, i|{
+    var test_messages: [message_count]TestMessage = [_]TestMessage{test_message_value} ** message_count;
+    for (test_messages) |*test_message, i| {
         test_message.f += @intToFloat(f32, i);
         test_message.i += @intCast(i16, i);
     }
     return test_messages;
 }
-
 
 fn asByteSlice(comptime T: type, x: *const T) []const u8 {
     return @sliceToBytes(@ptrCast([*]const T, x)[0..1]);
@@ -229,11 +219,11 @@ test "fill and drain BipartiteBuffer" {
     const test_messages = createTestMessages(message_count);
     const message_size = @sizeOf(TestMessage);
     const extra_capacity = 3;
-    var buffer = try BipartiteBuffer().init(debug.global_allocator, (message_count/2) * message_size + extra_capacity);
+    var buffer = try BipartiteBuffer().init(debug.global_allocator, (message_count / 2) * message_size + extra_capacity);
     defer buffer.deinit();
 
     // first put a few messages in
-    for (test_messages[0..message_count/4]) |test_message, i| {
+    for (test_messages[0 .. message_count / 4]) |test_message, i| {
         var reserved = try buffer.reserve(message_size);
         testing.expect(reserved.len >= message_size);
         testing.expect(reserved.ptr == buffer.reserved.ptr);
@@ -243,14 +233,14 @@ test "fill and drain BipartiteBuffer" {
         testing.expectEqual(buffer.size(), message_size * (i + 1));
     }
     // then put and pull out at the same time
-    for (test_messages[message_count/4..]) |test_message, i| {
+    for (test_messages[message_count / 4 ..]) |test_message, i| {
         var reserved = try buffer.reserve(message_size);
         testing.expect(reserved.len >= message_size);
         testing.expect(reserved.ptr == buffer.reserved.ptr);
         testing.expectEqual(reserved.len, buffer.reserved.len);
         std.mem.copy(u8, reserved[0..message_size], asByteSlice(TestMessage, &test_message));
         try buffer.commit(message_size);
-        testing.expectEqual(buffer.size(), message_size * (message_count/4 + 1));
+        testing.expectEqual(buffer.size(), message_size * (message_count / 4 + 1));
 
         var peek = buffer.peek();
         testing.expect(peek.len >= message_size);
@@ -259,10 +249,10 @@ test "fill and drain BipartiteBuffer" {
         testing.expect(block.len >= message_size);
         testing.expectEqualSlices(u8, block[0..message_size], asByteSlice(TestMessage, &test_messages[i]));
         try buffer.release(message_size);
-        testing.expectEqual(buffer.size(), message_size * (message_count/4));
+        testing.expectEqual(buffer.size(), message_size * (message_count / 4));
     }
     // then pull out the last messages
-    for (test_messages[message_count-message_count/4..]) |test_message, i| {
+    for (test_messages[message_count - message_count / 4 ..]) |test_message, i| {
         var peek = buffer.peek();
         testing.expect(peek.len >= message_size);
         testing.expectEqualSlices(u8, peek[0..message_size], asByteSlice(TestMessage, &test_message));
@@ -270,7 +260,7 @@ test "fill and drain BipartiteBuffer" {
         testing.expect(block.len >= message_size);
         testing.expectEqualSlices(u8, block[0..message_size], asByteSlice(TestMessage, &test_message));
         try buffer.release(message_size);
-        testing.expectEqual(buffer.size(), message_size * (message_count/4 - i - 1));
+        testing.expectEqual(buffer.size(), message_size * (message_count / 4 - i - 1));
     }
     testing.expect(buffer.empty());
     testing.expectEqual(buffer.size(), 0);
