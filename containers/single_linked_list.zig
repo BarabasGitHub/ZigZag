@@ -34,12 +34,7 @@ pub fn SingleLinkedList(comptime Value: type) type {
         }
 
         pub fn deinit(self: *Self) void {
-            var node = self.head;
-            self.head = null;
-            while (node) |n| {
-                node = n.next;
-                self.allocator.destroy(n);
-            }
+            self.clear();
         }
 
         pub fn empty(self: Self) bool {
