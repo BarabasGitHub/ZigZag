@@ -21,22 +21,22 @@ pub fn SingleLinkedList(comptime Value: type) type {
                     self.node = node.next;
                     return &node.value;
                 } else {
-                   return null;
+                    return null;
                 }
             }
         };
 
-        pub fn init(allocator: * Allocator) Self {
-            return Self {
+        pub fn init(allocator: *Allocator) Self {
+            return Self{
                 .head = null,
                 .allocator = allocator,
             };
         }
 
-        pub fn deinit(self: * Self) void {
+        pub fn deinit(self: *Self) void {
             var node = self.head;
             self.head = null;
-            while(node) |n| {
+            while (node) |n| {
                 node = n.next;
                 self.allocator.destroy(n);
             }
@@ -49,14 +49,14 @@ pub fn SingleLinkedList(comptime Value: type) type {
         pub fn count(self: Self) usize {
             var i = usize(0);
             var node = self.head;
-            while(node) |n| {
+            while (node) |n| {
                 node = n.next;
                 i += 1;
             }
             return i;
         }
 
-        pub fn prepend(self: * Self, value: Value) !void {
+        pub fn prepend(self: *Self, value: Value) !void {
             var new_node = try self.allocator.create(Node);
             new_node.value = value;
             new_node.next = self.head;
@@ -68,14 +68,14 @@ pub fn SingleLinkedList(comptime Value: type) type {
             return &self.head.?.value;
         }
 
-        pub fn popFront(self: * Self) void {
+        pub fn popFront(self: *Self) void {
             if (self.head) |node| {
                 self.head = node.next;
                 self.allocator.destroy(node);
             }
         }
 
-        pub fn insert(self: Self, node: * Node, value: Value) !void {
+        pub fn insert(self: Self, node: *Node, value: Value) !void {
             var new_node = try self.allocator.create(Node);
             new_node.value = value;
             new_node.next = node.next;
@@ -88,32 +88,32 @@ pub fn SingleLinkedList(comptime Value: type) type {
             };
         }
 
-        pub fn clear(self: * Self) void {
+        pub fn clear(self: *Self) void {
             var node = self.head;
-            while(node) |n| {
+            while (node) |n| {
                 node = n.next;
                 self.allocator.destroy(n);
             }
             self.head = null;
         }
 
-        pub fn removeAfter(self: * const Self, node: * Node) void {
+        pub fn removeAfter(self: *const Self, node: *Node) void {
             const to_remove = node.next.?;
             node.next = to_remove.next;
             self.allocator.destroy(to_remove);
         }
 
-        pub fn splitAfter(self: Self, node: * Node) Self {
+        pub fn splitAfter(self: Self, node: *Node) Self {
             var new = init(self.allocator);
             new.head = node.next;
             node.next = null;
             return new;
         }
 
-        pub fn reverse(self: * Self) void {
+        pub fn reverse(self: *Self) void {
             var node = self.head;
             var previous: ?*Node = null;
-            while(node) |n| {
+            while (node) |n| {
                 node = n.next;
                 n.next = previous;
                 previous = n;
@@ -235,12 +235,12 @@ test "SingleLinkedList splitAfter" {
     const container2 = container.splitAfter(iter.node.?);
     iter = container.iterator();
     var expected = u32(0);
-    while(iter.next()) |value| {
+    while (iter.next()) |value| {
         testing.expectEqual(value.*, expected);
         expected += 1;
     }
     iter = container2.iterator();
-    while(iter.next()) |value| {
+    while (iter.next()) |value| {
         testing.expectEqual(value.*, expected);
         expected += 1;
     }
