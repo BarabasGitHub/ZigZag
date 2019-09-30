@@ -17,7 +17,8 @@ pub fn SingleLinkedList(comptime Value: type) type {
         const Iterator = struct {
             node: ?*Node,
             pub fn next(self: *Iterator) ?*Value {
-                if (self.node) |node| {
+                if (self.node) |node_| {
+                    const node = node_;
                     self.node = node.next;
                     return &node.value;
                 } else {
@@ -85,8 +86,7 @@ pub fn SingleLinkedList(comptime Value: type) type {
 
         pub fn clear(self: *Self) void {
             var node = self.head;
-            while (node) |n| {
-                node = n.next;
+            while (node) |n| : (node = n.next) {
                 self.allocator.destroy(n);
             }
             self.head = null;
@@ -108,7 +108,8 @@ pub fn SingleLinkedList(comptime Value: type) type {
         pub fn reverse(self: *Self) void {
             var node = self.head;
             var previous: ?*Node = null;
-            while (node) |n| {
+            while (node) |n_| {
+                const n = n_;
                 node = n.next;
                 n.next = previous;
                 previous = n;
