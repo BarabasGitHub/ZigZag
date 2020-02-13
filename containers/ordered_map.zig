@@ -45,7 +45,7 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                 return self.parent != null;
             }
             pub fn isChild(self: *const Node, leftRight: u1) bool {
-                return self.parent != null and self.parent.?.children(leftRight).* == (?*const Node)(self);
+                return self.parent != null and self.parent.?.children(leftRight).* == self;
             }
             pub fn isLeftChild(self: *const Node) bool {
                 return self.isChild(0);
@@ -388,7 +388,7 @@ fn less_u32(a: u32, b: u32) bool {
 }
 
 test "OrderedMap initialization" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.empty());
@@ -396,7 +396,7 @@ test "OrderedMap initialization" {
 }
 
 test "OrderedMap insert" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     try container.insert(2, 1.5);
@@ -409,7 +409,7 @@ test "OrderedMap insert" {
 }
 
 test "OrderedMap clear" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     try container.insert(2, 1.5);
@@ -423,7 +423,7 @@ test "OrderedMap clear" {
 }
 
 test "OrderedMap exists" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(!container.exists(2));
@@ -433,7 +433,7 @@ test "OrderedMap exists" {
 }
 
 test "OrderedMap get" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.get(2) == null);
@@ -444,7 +444,7 @@ test "OrderedMap get" {
 }
 
 test "OrderedMap Iterator" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     {
@@ -464,18 +464,18 @@ test "OrderedMap Iterator" {
     const ordered_keys = [_]u32{ 1, 2, 3 };
     const ordered_values = [_]f64{ 3.5, 1.5, 2.5 };
     var iterator = container.iterator();
-    var i = u32(0);
+    var i : u32 = 0;
     while (iterator.next()) |next| : (i += 1) {
         testing.expectEqual(next.key(), ordered_keys[i]);
         testing.expectEqual(next.value(), ordered_values[i]);
     }
-    testing.expectEqual(usize(i), container.count());
+    testing.expectEqual(@as(usize, i), container.count());
 
     //debug.warn("Header is {} bytes\n", usize(@sizeOf(OrderedMap(u32,u32,less_u32).Header)));
 }
 
 test "OrderedMap remove" {
-    var container = OrderedMap(u32, f64, less_u32).init(debug.global_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     try container.insert(2, 1.5);
@@ -514,7 +514,7 @@ test "OrderedMap insert remove many" {
     testing.expect(container.empty());
 }
 
-fn levelsOk(flatMap: var, node0: *@typeOf(flatMap).Node) bool {
+fn levelsOk(flatMap: var, node0: *@TypeOf(flatMap).Node) bool {
     const level0 = node0.level;
     if (node0.right_child) |node1| {
         const level1 = node1.level;

@@ -38,12 +38,12 @@ pub fn SingleLinkedList(comptime Value: type) type {
             self.clear();
         }
 
-        pub fn empty(self: Self) bool {
+        pub fn empty(self: *const Self) bool {
             return self.head == null;
         }
 
         pub fn count(self: Self) usize {
-            var i = usize(0);
+            var i : usize = 0;
             var node = self.head;
             while (node) |n| {
                 node = n.next;
@@ -60,7 +60,7 @@ pub fn SingleLinkedList(comptime Value: type) type {
         }
 
         pub fn front(self: Self) *Value {
-            testing.expect(self.head != null);
+            debug.assert(self.head != null);
             return &self.head.?.value;
         }
 
@@ -120,7 +120,7 @@ pub fn SingleLinkedList(comptime Value: type) type {
 }
 
 test "SingleLinkedList initialization" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.empty());
@@ -128,7 +128,7 @@ test "SingleLinkedList initialization" {
 }
 
 test "SingleLinkedList prepend" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(1);
@@ -137,7 +137,7 @@ test "SingleLinkedList prepend" {
 }
 
 test "SingleLinkedList front" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(1);
@@ -147,7 +147,7 @@ test "SingleLinkedList front" {
 }
 
 test "SingleLinkedList popFront" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(1);
@@ -157,7 +157,7 @@ test "SingleLinkedList popFront" {
 }
 
 test "SingleLinkedList iterate" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     var empty_iter = container.iterator();
@@ -168,7 +168,7 @@ test "SingleLinkedList iterate" {
     try container.prepend(1);
 
     var iter = container.iterator();
-    var expected = u32(1);
+    var expected : u32 = 1;
     while (iter.next()) |value| {
         testing.expectEqual(value.*, expected);
         expected += 1;
@@ -176,7 +176,7 @@ test "SingleLinkedList iterate" {
 }
 
 test "SingleLinkedList insert" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(3);
@@ -190,7 +190,7 @@ test "SingleLinkedList insert" {
 }
 
 test "SingleLinkedList clear" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(3);
@@ -203,7 +203,7 @@ test "SingleLinkedList clear" {
 }
 
 test "SingleLinkedList removeAfter" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(3);
@@ -218,7 +218,7 @@ test "SingleLinkedList removeAfter" {
 }
 
 test "SingleLinkedList splitAfter" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(3);
@@ -228,9 +228,10 @@ test "SingleLinkedList splitAfter" {
 
     var iter = container.iterator();
     _ = iter.next();
-    const container2 = container.splitAfter(iter.node.?);
+    var container2 = container.splitAfter(iter.node.?);
+    defer container2.deinit();
     iter = container.iterator();
-    var expected = u32(0);
+    var expected : u32 = 0;
     while (iter.next()) |value| {
         testing.expectEqual(value.*, expected);
         expected += 1;
@@ -243,7 +244,7 @@ test "SingleLinkedList splitAfter" {
 }
 
 test "SingleLinkedList reverse" {
-    var container = SingleLinkedList(u32).init(debug.global_allocator);
+    var container = SingleLinkedList(u32).init(testing.allocator);
     defer container.deinit();
 
     try container.prepend(1);

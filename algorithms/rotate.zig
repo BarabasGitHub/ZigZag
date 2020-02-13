@@ -35,12 +35,12 @@ test "Rotate by half the distance" {
     var array = [_]i32{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     const expected = [_]i32{ 6, 7, 8, 9, 10, 1, 2, 3, 4, 5 };
     rotateBlock(i32, array[0..], array.len / 2);
-    testing.expectEqualSlices(i32, array, expected);
+    testing.expectEqual(array, expected);
 }
 
 test "Rotate by 3" {
     var array = [_]i32{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     const expected = [_]i32{ 4, 5, 6, 7, 8, 9, 10, 1, 2, 3 };
     rotateBlock(i32, array[0..], 3);
-    testing.expectEqualSlices(i32, array, expected);
+    testing.expectEqual(array, expected);
 }

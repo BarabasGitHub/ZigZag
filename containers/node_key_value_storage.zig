@@ -4,7 +4,7 @@ const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
-    return ((@ptrToInt(p) + @alignOf(Type) - 1) & ~(usize(@alignOf(Type) - 1))) - @ptrToInt(p);
+    return ((@ptrToInt(p) + @alignOf(Type) - 1) & ~(@as(usize, @alignOf(Type) - 1))) - @ptrToInt(p);
 }
 
 pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Value: type) type {
@@ -18,7 +18,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         pub fn init(allocator: *Allocator) Self {
             //debug.warn("Alignement of storage is {}", usize(@alignOf(Node)));
             return Self{
-                .node_key_value_storage = [_]u8{},
+                .node_key_value_storage = &[_]u8{},
                 .storage_size = 0,
                 .allocator = allocator,
             };
@@ -102,7 +102,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn values(self: Self) []Value {
-            const start_offset = self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + (@alignOf(Key) * usize(@boolToInt(!self.empty())));
+            const start_offset = self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + (@alignOf(Key) * @as(usize, @boolToInt(!self.empty())));
             const offset = alignPointerOffset(Value, self.node_key_value_storage.ptr + start_offset) + start_offset;
             const value_data_slice = self.node_key_value_storage[offset .. offset + self.capacity() * @sizeOf(Value)];
             return @alignCast(@alignOf(Value), @bytesToSlice(Value, value_data_slice));
@@ -119,7 +119,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
 }
 
 test "NodeKeyValueStorage initialization" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.empty());
@@ -128,7 +128,7 @@ test "NodeKeyValueStorage initialization" {
 }
 
 test "NodeKeyValueStorage append elements" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.append(0, 1.0, 1);
@@ -143,7 +143,7 @@ test "NodeKeyValueStorage append elements" {
 }
 
 test "NodeKeyValueStorage clear" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.append(0, 1.0, 1);
@@ -159,7 +159,7 @@ test "NodeKeyValueStorage clear" {
 }
 
 test "NodeKeyValueStorage set capacity" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
     testing.expectEqual(container.capacity(), 0);
     try container.setCapacity(10);
@@ -167,7 +167,7 @@ test "NodeKeyValueStorage set capacity" {
 }
 
 test "NodeKeyValueStorage grow capacity" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
     testing.expectEqual(container.capacity(), 0);
     try container.growCapacity(1);
@@ -179,7 +179,7 @@ test "NodeKeyValueStorage grow capacity" {
 }
 
 test "NodeKeyValueStorage ensure capacity" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
     testing.expectEqual(container.capacity(), 0);
     try container.ensureCapacity(10);
@@ -191,7 +191,7 @@ test "NodeKeyValueStorage ensure capacity" {
 }
 
 test "NodeKeyValueStorage get nodes" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.append(0, 1.0, 1);
@@ -206,7 +206,7 @@ test "NodeKeyValueStorage get nodes" {
 }
 
 test "NodeKeyValueStorage get keys" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.append(0, 1.0, 1);
@@ -221,7 +221,7 @@ test "NodeKeyValueStorage get keys" {
 }
 
 test "NodeKeyValueStorage get values" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.append(0, 1.0, 2);
@@ -236,7 +236,7 @@ test "NodeKeyValueStorage get values" {
 }
 
 test "NodeKeyValueStorage don't grow capacity if not needed" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.setCapacity(10);
@@ -246,7 +246,7 @@ test "NodeKeyValueStorage don't grow capacity if not needed" {
 }
 
 test "NodeKeyValueStorage pop back" {
-    var container = NodeKeyValueStorage(u32, f64, i128).init(debug.global_allocator);
+    var container = NodeKeyValueStorage(u32, f64, i128).init(testing.allocator);
     defer container.deinit();
 
     try container.append(0, 1.0, 2);

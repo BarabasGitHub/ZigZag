@@ -221,7 +221,7 @@ test "partition" {
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expectEqualSlices(i64, original, values);
+    testing.expectEqual(original, values);
 }
 
 test "partition with 2 values" {
@@ -240,7 +240,7 @@ test "partition with 2 values" {
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expectEqualSlices(i64, original, values);
+    testing.expectEqual(original, values);
 }
 
 fn testDualPivotPartition(values: []i64, pivot_value1: i64, pivot_value2: i64) void {
@@ -265,7 +265,7 @@ fn testDualPivotPartition(values: []i64, pivot_value1: i64, pivot_value2: i64) v
     // check if we still have all the right values
     std.sort.insertionSort(i64, values, lessThan);
     std.sort.insertionSort(i64, original, lessThan);
-    testing.expectEqualSlices(i64, original, values);
+    testing.expectEqual(original, values);
 }
 
 test "DualPivotPartition" {
@@ -304,5 +304,5 @@ test "NthElement" {
     // check if we still have all the right values
     std.sort.insertionSort(i64, values[0..], lessThan);
     std.sort.insertionSort(i64, original[0..], lessThan);
-    testing.expectEqualSlices(i64, original, values);
+    testing.expectEqual(original, values);
 }

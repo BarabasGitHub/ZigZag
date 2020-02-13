@@ -220,13 +220,9 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
     };
 }
 
-fn asByteSlice(x: var) []const u8 {
-    const T = @typeOf(x);
-    return @sliceToBytes(([]const T{x})[0..1]);
-}
-
 fn test_hash(f : f64) usize {
-    return hf.bytestreamHash(asByteSlice(f), 32426578264);
+    const a = @bitCast([8]u8, f);
+    return hf.bytestreamHash(&a, 32426578264);
 }
 
 fn test_equals(a : f64, b : f64) bool {
@@ -234,7 +230,7 @@ fn test_equals(a : f64, b : f64) bool {
 }
 
 test "initialized HashMap state" {
-    var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
     defer map.deinit();
 
     testing.expect(map.empty());
@@ -246,7 +242,7 @@ test "initialized HashMap state" {
 }
 
 test "increase HashMap bucket count" {
-    var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
     defer map.deinit();
 
     testing.expectEqual(map.bucketCount(), 1);
@@ -258,7 +254,7 @@ test "increase HashMap bucket count" {
 
 
 test "set and grow HashMap capacity" {
-    var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
     defer map.deinit();
 
     testing.expectEqual(map.capacity(), 0);
@@ -271,7 +267,7 @@ test "set and grow HashMap capacity" {
 }
 
 test "insert and clear in HashMap" {
-    var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
     defer map.deinit();
 
     testing.expect(map.empty());
@@ -286,7 +282,7 @@ test "insert and clear in HashMap" {
 }
 
 test "HashMap get and exists" {
-    var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
     defer map.deinit();
 
     try map.insert(0.5, 123);
@@ -308,7 +304,7 @@ test "HashMap get and exists" {
 }
 
 test "remove from HashMap" {
-    var map = try HashMap(f64, i128, test_hash, test_equals).init(debug.global_allocator);
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
     defer map.deinit();
 
     try map.insert(0.5, 123);

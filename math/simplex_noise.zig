@@ -5,11 +5,11 @@ const hf = @import("../algorithms/hash_functions.zig");
 const testing = std.testing;
 
 fn skewFactor(comptime N: usize) f32 {
-    return (@sqrt(f32, @intToFloat(f32, N + 1)) - f32(1)) / @intToFloat(f32, N);
+    return (@sqrt(@intToFloat(f32, N + 1)) - @as(f32, 1)) / @intToFloat(f32, N);
 }
 
 fn unskewFactor(comptime N: usize) f32 {
-    return (f32(1) - (f32(1) / @sqrt(f32, @intToFloat(f32, N + 1)))) / @intToFloat(f32, N);
+    return (@as(f32, 1) - (@as(f32, 1) / @sqrt(@intToFloat(f32, N + 1)))) / @intToFloat(f32, N);
 }
 
 fn findCornerVertex2(comptime BatchSize: usize, input: BatchedFloat2(BatchSize)) BatchedFloat2(BatchSize) {
@@ -76,7 +76,7 @@ fn getHashValue(comptime BatchSize: usize, f: BatchedFloat2(BatchSize), seed: us
     const abcd = interleaveFloat(BatchSize, f.x, f.y);
     var r: [BatchSize]u32 = undefined;
     for (r) |*e, i| {
-        e.* = @truncate(u32, @inlineCall(hf.bytestreamHash, @sliceToBytes(abcd[i * 2 .. (i + 1) * 2]), seed));
+        e.* = @truncate(u32, @call(.{.modifier=std.builtin.CallOptions.Modifier.always_inline}, hf.bytestreamHash, .{@sliceToBytes(abcd[i * 2 .. (i + 1) * 2]), seed}));
     }
     return r;
 }

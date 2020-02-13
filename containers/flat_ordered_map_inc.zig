@@ -456,7 +456,7 @@ fn less_u32(a: u32, b: u32) bool {
 }
 
 test "FlatOrderedMapInc initialization" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.empty());
@@ -465,7 +465,7 @@ test "FlatOrderedMapInc initialization" {
 }
 
 test "FlatOrderedMapInc insert" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     try container.insert(2, 1.5);
@@ -478,7 +478,7 @@ test "FlatOrderedMapInc insert" {
 }
 
 test "FlatOrderedMapInc clear" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     try container.insert(2, 1.5);
@@ -495,7 +495,7 @@ test "FlatOrderedMapInc clear" {
 }
 
 test "FlatOrderedMapInc exists" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(!container.exists(2));
@@ -505,7 +505,7 @@ test "FlatOrderedMapInc exists" {
 }
 
 test "FlatOrderedMapInc get" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.get(2) == null);
@@ -516,7 +516,7 @@ test "FlatOrderedMapInc get" {
 }
 
 test "FlatOrderedMapInc ensure capacity" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     testing.expectEqual(container.capacity(), 0);
@@ -533,7 +533,7 @@ test "FlatOrderedMapInc ensure capacity" {
 }
 
 test "FlatOrderedMapInc Iterator" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     {
@@ -553,18 +553,18 @@ test "FlatOrderedMapInc Iterator" {
     const ordered_keys = [_]u32{ 1, 2, 3 };
     const ordered_values = [_]f64{ 3.5, 1.5, 2.5 };
     var iterator = container.iterator();
-    var i = u32(0);
+    var i : u32 = 0;
     while (iterator.next()) |next| : (i += 1) {
         testing.expectEqual(next.key(), ordered_keys[i]);
         testing.expectEqual(next.value(), ordered_values[i]);
     }
-    testing.expectEqual(usize(i), container.count());
+    testing.expectEqual(@as(usize, i), container.count());
 
     //debug.warn("Header is {} bytes\n", usize(@sizeOf(FlatOrderedMapInc(u32,u32,less_u32).Header)));
 }
 
 test "FlatOrderedMapInc remove" {
-    var container = FlatOrderedMapInc(u32, f64, less_u32).init(debug.global_allocator);
+    var container = FlatOrderedMapInc(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     try container.insert(2, 1.5);

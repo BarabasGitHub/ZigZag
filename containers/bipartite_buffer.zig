@@ -19,7 +19,7 @@ pub fn BipartiteBuffer() type {
                 .memory = try allocator.alloc(u8, start_capacity),
                 .primary = undefined,
                 .secondary_size = 0,
-                .reserved = [_]u8{},
+                .reserved = &[_]u8{},
                 .reading_size = 0,
                 .allocator = allocator,
             };
@@ -53,7 +53,7 @@ pub fn BipartiteBuffer() type {
             } else if (self.hasSecondaryExcessCapacity(count)) {
                 self.reserved = self.memory[self.secondaryDataSize()..self.primaryDataStart()];
             } else {
-                self.reserved = [_]u8{};
+                self.reserved = &[_]u8{};
                 return BufferReserveError.NotEnoughContigousCapacityAvailable;
             }
             return self.reserved;
@@ -67,7 +67,7 @@ pub fn BipartiteBuffer() type {
                 std.debug.assert(self.memory.ptr + self.secondaryDataSize() == self.reserved.ptr);
                 self.secondary_size += count;
             }
-            self.reserved = [_]u8{};
+            self.reserved = &[_]u8{};
         }
 
         pub fn peek(self: Self) []const u8 {
@@ -152,7 +152,7 @@ const BufferDiscardError = error{DiscardingMoreThanAvailable};
 
 test "initialized BipartiteBuffer state" {
     const capacity = 100;
-    var buffer = try BipartiteBuffer().init(debug.global_allocator, capacity);
+    var buffer = try BipartiteBuffer().init(testing.allocator, capacity);
     defer buffer.deinit();
 
     testing.expect(buffer.empty());
@@ -186,7 +186,7 @@ fn asByteSlice(comptime T: type, x: *const T) []const u8 {
 }
 
 test "push pull messages" {
-    var buffer = try BipartiteBuffer().init(debug.global_allocator, 100);
+    var buffer = try BipartiteBuffer().init(testing.allocator, 100);
     defer buffer.deinit();
 
     var i: u8 = 0;
@@ -201,7 +201,7 @@ test "push pull messages" {
     i = 0;
     while (i < 10) {
         const peek = buffer.peek();
-        testing.expectEqual(usize((10 - i) * 10), peek.len);
+        testing.expectEqual(@as(usize, (10 - i) * 10), peek.len);
         i += 1;
         for (peek) |e, j| {
             testing.expectEqual(e, @intCast(u8, j + i * 10));
@@ -219,7 +219,7 @@ test "fill and drain BipartiteBuffer" {
     const test_messages = createTestMessages(message_count);
     const message_size = @sizeOf(TestMessage);
     const extra_capacity = 3;
-    var buffer = try BipartiteBuffer().init(debug.global_allocator, (message_count / 2) * message_size + extra_capacity);
+    var buffer = try BipartiteBuffer().init(testing.allocator, (message_count / 2) * message_size + extra_capacity);
     defer buffer.deinit();
 
     // first put a few messages in
@@ -267,7 +267,7 @@ test "fill and drain BipartiteBuffer" {
 }
 
 test "discard data" {
-    var buffer = try BipartiteBuffer().init(debug.global_allocator, 100);
+    var buffer = try BipartiteBuffer().init(testing.allocator, 100);
     defer buffer.deinit();
 
     _ = try buffer.reserve(50);
@@ -282,7 +282,7 @@ test "discard data" {
 }
 
 test "release data" {
-    var buffer = try BipartiteBuffer().init(debug.global_allocator, 100);
+    var buffer = try BipartiteBuffer().init(testing.allocator, 100);
     defer buffer.deinit();
 
     _ = try buffer.reserve(50);

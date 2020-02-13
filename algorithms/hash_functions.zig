@@ -1,7 +1,7 @@
 
 fn rotate(number : u64, rotation : u6) u64
 {
-    return (number << rotation) | (number >> @intCast(u6, u7(@sizeOf(u64)) * u7(8) - rotation));
+    return (number << rotation) | (number >> @intCast(u6, @as(u7, @sizeOf(u64)) * @as(u7, 8) - rotation));
 }
 
 // fn rotate(number : u32, rotation : u32) u32
@@ -47,22 +47,22 @@ fn hash64To64(seed : u64, data : u64) u64 {
 
 fn hash32To64(seed : u64, data : u32) u32 {
     // This apparently need some extra mixing, used the same tactic as with 64 bit mix
-    // return finalizeHashTo64(seed, Mix(data) * spreadNumber(@typeOf(data)));
-    return finalizeHashTo64(seed, u64(data) *% spreadNumber(@typeOf(data)));
+    // return finalizeHashTo64(seed, Mix(data) * spreadNumber(@TypeOf(data)));
+    return finalizeHashTo64(seed, @as(u64, data) *% spreadNumber(@TypeOf(data)));
 }
 
 
 fn hash16To64(seed : u64, data : u16) u64 {
-    return finalizeHashTo64(seed, u64(data) *% spreadNumber(@typeOf(data)));
+    return finalizeHashTo64(seed, @as(u64, data) *% spreadNumber(@TypeOf(data)));
 }
 
 
 fn hash8To64(seed : u64, data : u8) u64 {
-    return finalizeHashTo64(seed, u64(data) *% spreadNumber(@typeOf(data)));
+    return finalizeHashTo64(seed, @as(u64, data) *% spreadNumber(@TypeOf(data)));
 }
 
 fn hashTo64(seed : u64, data : var) u64 {
-    return switch (@typeOf(data))
+    return switch (@TypeOf(data))
     {
         u8 => hash8To64(seed, data),
         u16 => hash16To64(seed, data),
@@ -159,7 +159,7 @@ pub fn fnvHash(byte_data : [] const u8, seed_in : u64) u64
 {
     const FNV_offset_basis = 14695981039346656037;
     const FNV_prime = 1099511628211;
-    var hash = u64(FNV_offset_basis);
+    var hash : u64 = FNV_offset_basis;
     for (byte_data) |b|
     {
         hash *%= FNV_prime;
