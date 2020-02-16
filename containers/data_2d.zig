@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const assert = std.debug.assert;
 
 pub fn Data2D(comptime DataType: type) type {
     return struct {
@@ -10,8 +11,18 @@ pub fn Data2D(comptime DataType: type) type {
 
         const Self = @This();
 
+        pub fn fromSlice(slice: []DataType, column_count: usize, row_count: usize) Self {
+            assert(column_count * row_count == slice.len);
+            return Self {
+                .data = slice.ptr,
+                .column_count = column_count,
+                .row_count = row_count,
+                .row_byte_pitch = (slice.len * @sizeOf(DataType)) / row_count,
+            };
+        }
+
         pub fn fromBytes(dataBlob: []align(@alignOf(DataType))u8, column_count: usize, row_count: usize) Self {
-            testing.expect(column_count * row_count * @sizeOf(DataType) <= dataBlob.len);
+            assert(column_count * row_count * @sizeOf(DataType) <= dataBlob.len);
             return Self {
                 .data = @ptrCast([*]DataType, dataBlob.ptr),
                 .column_count = column_count,
@@ -21,8 +32,8 @@ pub fn Data2D(comptime DataType: type) type {
         }
 
         pub fn subRange(self: Self, column_offset: usize, row_offset: usize, column_count: usize, row_count: usize) Self {
-            testing.expect(self.row_count >= row_offset + row_count);
-            testing.expect(self.column_count >= column_offset + column_count);
+            assert(self.row_count >= row_offset + row_count);
+            assert(self.column_count >= column_offset + column_count);
             return Self {
                 .data = self.dataPointer(column_offset, row_offset),
                 .column_count = column_count,
@@ -36,8 +47,8 @@ pub fn Data2D(comptime DataType: type) type {
         }
 
         fn dataPointer(self: Self, column: usize, row: usize) [*]DataType {
-            testing.expect(column < self.column_count);
-            testing.expect(row < self.row_count);
+            assert(column < self.column_count);
+            assert(row < self.row_count);
             const byte_offset = row * self.row_byte_pitch;
             const row_start = @intToPtr([*]DataType, @ptrToInt(self.data) + byte_offset);
             return row_start + column;
@@ -87,6 +98,21 @@ pub fn Data2D(comptime DataType: type) type {
             };
         }
     };
+}
+
+test "Data2D from slice" {
+    var data: [30]f32 = undefined;
+    var range = Data2D(f32).fromSlice(&data, 3, 10);
+    testing.expectEqual(range.column_count, 3);
+    testing.expectEqual(range.row_count, 10);
+    testing.expectEqual(range.row_byte_pitch, 3 * @sizeOf(f32));
+    testing.expectEqual(range.elementCount(), 30);
+
+    testing.expectEqual(&data[0 + 0], range.getElement(0, 0));
+    testing.expectEqual(&data[0 + 15], range.getElement(0, 5));
+    testing.expectEqual(&data[1 + 0], range.getElement(1, 0));
+    testing.expectEqual(&data[2 + 15], range.getElement(2, 5));
+    testing.expectEqual(&data[2 + 27], range.getElement(2, 9));
 }
 
 test "Data2D from bytes" {
