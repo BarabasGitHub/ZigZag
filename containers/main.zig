@@ -5,3 +5,7 @@ pub usingnamespace @import("hash_map.zig");
 pub usingnamespace @import("node_key_value_storage.zig");
 pub usingnamespace @import("ordered_map.zig");
 pub usingnamespace @import("single_linked_list.zig");
+
+comptime {
+    @import("std").meta.refAllDecls(@This());
+}
