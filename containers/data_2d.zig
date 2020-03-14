@@ -1,4 +1,5 @@
 const std = @import("std");
+const mem = std.mem;
 const testing = std.testing;
 const assert = std.debug.assert;
 
@@ -117,7 +118,7 @@ test "Data2D from slice" {
 
 test "Data2D from bytes" {
     var data: [40]f32 = undefined;
-    var range = Data2D(f32).fromBytes(@sliceToBytes(data[0..]), 3, 10);
+    var range = Data2D(f32).fromBytes(mem.sliceAsBytes(data[0..]), 3, 10);
     testing.expectEqual(range.column_count, 3);
     testing.expectEqual(range.row_count, 10);
     testing.expectEqual(range.row_byte_pitch, 4 * @sizeOf(f32));
@@ -126,7 +127,7 @@ test "Data2D from bytes" {
 
 test "Data2D data pointer" {
     var data: [40]f32 = undefined;
-    var range = Data2D(f32).fromBytes(@sliceToBytes(data[0..]), 6, 5);
+    var range = Data2D(f32).fromBytes(mem.sliceAsBytes(data[0..]), 6, 5);
     const pointer = range.dataPointer(4, 3);
     pointer.* = 10;
     testing.expectEqual(data[4 + 8 * 3], 10);
@@ -134,7 +135,7 @@ test "Data2D data pointer" {
 
 test "Data2D get element" {
     var data: [40]f32 = undefined;
-    var range = Data2D(f32).fromBytes(@sliceToBytes(data[0..]), 6, 5);
+    var range = Data2D(f32).fromBytes(mem.sliceAsBytes(data[0..]), 6, 5);
     const element = range.getElement(4, 3);
     element.* = 10;
     testing.expectEqual(data[4 + 8 * 3], 10);
@@ -142,7 +143,7 @@ test "Data2D get element" {
 
 test "Data2D sub range" {
     var data: [40]f32 = undefined;
-    var range = Data2D(f32).fromBytes(@sliceToBytes(data[0..]), 6, 5);
+    var range = Data2D(f32).fromBytes(mem.sliceAsBytes(data[0..]), 6, 5);
     var subRange = range.subRange(2, 1, 3, 2);
     testing.expectEqual(subRange.dataPointer(0,0), range.dataPointer(2, 1));
     testing.expectEqual(subRange.column_count, 3);
@@ -153,7 +154,7 @@ test "Data2D sub range" {
 
 test "Data2D get row" {
     var data: [40]f32 = undefined;
-    var range = Data2D(f32).fromBytes(@sliceToBytes(data[0..]), 6, 5);
+    var range = Data2D(f32).fromBytes(mem.sliceAsBytes(data[0..]), 6, 5);
     for (range.getRow(2)) |*e, i| {
         e.* = @intToFloat(f32, i);
     }

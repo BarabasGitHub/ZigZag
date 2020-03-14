@@ -4,7 +4,7 @@ const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
 fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
-    return ((@ptrToInt(p) + @alignOf(Type) - 1) & ~(@as(usize, @alignOf(Type) - 1))) - @ptrToInt(p);
+    return std.mem.alignForward(@ptrToInt(p), @alignOf(Type)) - @ptrToInt(p);
 }
 
 pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Value: type) type {
@@ -83,7 +83,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn nodes(self: Self) []Node {
-            return @bytesToSlice(Node, self.node_key_value_storage[0 .. self.storage_size * @sizeOf(Node)]);
+            return std.mem.bytesAsSlice(Node, self.node_key_value_storage[0 .. self.size() * @sizeOf(Node)]);
         }
 
         pub fn nodeAt(self: Self, index: usize) Node {
@@ -93,8 +93,8 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         pub fn keys(self: Self) []Key {
             const start_offset = self.capacity() * @sizeOf(Node);
             const offset = alignPointerOffset(Key, self.node_key_value_storage.ptr + start_offset) + start_offset;
-            const key_data_slice = self.node_key_value_storage[offset .. offset + self.capacity() * @sizeOf(Key)];
-            return @alignCast(@alignOf(Key), @bytesToSlice(Key, key_data_slice));
+            const key_data_slice = self.node_key_value_storage[offset .. offset + self.size() * @sizeOf(Key)];
+            return @alignCast(@alignOf(Key), std.mem.bytesAsSlice(Key, key_data_slice));
         }
 
         pub fn keyAt(self: Self, index: usize) Key {
@@ -104,8 +104,8 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         pub fn values(self: Self) []Value {
             const start_offset = self.capacity() * (@sizeOf(Node) + @sizeOf(Key)) + (@alignOf(Key) * @as(usize, @boolToInt(!self.empty())));
             const offset = alignPointerOffset(Value, self.node_key_value_storage.ptr + start_offset) + start_offset;
-            const value_data_slice = self.node_key_value_storage[offset .. offset + self.capacity() * @sizeOf(Value)];
-            return @alignCast(@alignOf(Value), @bytesToSlice(Value, value_data_slice));
+            const value_data_slice = self.node_key_value_storage[offset .. offset + self.size() * @sizeOf(Value)];
+            return @alignCast(@alignOf(Value), std.mem.bytesAsSlice(Value, value_data_slice));
         }
 
         pub fn valueAt(self: Self, index: usize) Value {

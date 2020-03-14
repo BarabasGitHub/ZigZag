@@ -1,3 +1,4 @@
+const mem = @import("std").mem;
 
 fn rotate(number : u64, rotation : u6) u64
 {
@@ -46,8 +47,6 @@ fn hash64To64(seed : u64, data : u64) u64 {
 }
 
 fn hash32To64(seed : u64, data : u32) u32 {
-    // This apparently need some extra mixing, used the same tactic as with 64 bit mix
-    // return finalizeHashTo64(seed, Mix(data) * spreadNumber(@TypeOf(data)));
     return finalizeHashTo64(seed, @as(u64, data) *% spreadNumber(@TypeOf(data)));
 }
 
@@ -77,7 +76,7 @@ fn hash128to64(data_in : u128) u64 {
     // I took this from the google city hash and changed it a bit
     // Murmur-inspired hashing.
     const data = [1]u128{data_in};
-    const x = @bytesToSlice(u64, @sliceToBytes(data[0..]));
+    const x = mem.bytesAsSlice(u64, mem.sliceAsBytes(data[0..]));
     var a = (x[1] ^ x[0]) *% special_number;
     a = rotateMix(a);
     var b = (x[0] ^ a) *% special_number;
@@ -95,7 +94,7 @@ fn shortHashLoop(byte_data : []const u8, byte_size : usize, initial_hash : u64, 
 {
     const main_loop_data_size = roundInteger(byte_size, @sizeOf(u16) * 2);
     var hash = hash_in;
-    for (@bytesToSlice([2]u16, byte_data[0..main_loop_data_size])) |loop_data| {
+    for (mem.bytesAsSlice([2]u16, byte_data[0..main_loop_data_size])) |loop_data| {
         hash = finalizeHashTo64(hash, finalizeHashTo64(hashTo64(initial_hash, loop_data[0]), hashTo64(initial_hash, loop_data[1])));
     }
     for (byte_data[main_loop_data_size..]) |loop_data| {
@@ -110,17 +109,17 @@ pub fn murBasHash(byte_data : [] const u8, seed : u64) u64
     const byte_size = byte_data.len;
     var hash = seed +% byte_size *% special_number;
     const byte_data_end_size = roundInteger(byte_size, @sizeOf(u128) * 2);
-    for (@bytesToSlice([2]u128, byte_data[0..byte_data_end_size])) |loop_data|
+    for (mem.bytesAsSlice([2]u128, byte_data[0..byte_data_end_size])) |loop_data|
     {
         const a = [2]u64{hash128to64(loop_data[0]), hash128to64(loop_data[1])};
-        const b = [2]u64{hash, hash128to64(@bytesToSlice(u128, @sliceToBytes(a[0..]))[0])};
-        hash = hash128to64(@sliceToBytes(b[0..])[0]);
+        const b = [2]u64{hash, hash128to64(mem.bytesAsSlice(u128, mem.sliceAsBytes(a[0..]))[0])};
+        hash = hash128to64(mem.sliceAsBytes(b[0..])[0]);
     }
     var loop_data = [2]u128{0, 0};
-    @memcpy(@sliceToBytes(loop_data[0..]).ptr, byte_data[byte_data_end_size..byte_data_end_size + 1].ptr, byte_size - byte_data_end_size);
+    @memcpy(mem.sliceAsBytes(loop_data[0..]).ptr, byte_data[byte_data_end_size..byte_data_end_size + 1].ptr, byte_size - byte_data_end_size);
     const a = [2]u64{hash128to64(loop_data[0]), hash128to64(loop_data[1])};
-    const b = [2]u64{hash, hash128to64(@bytesToSlice(u128, @sliceToBytes(a[0..]))[0])};
-    hash = hash128to64(@bytesToSlice(u128, @sliceToBytes(b[0..]))[0]);
+    const b = [2]u64{hash, hash128to64(mem.bytesAsSlice(u128, mem.sliceAsBytes(a[0..]))[0])};
+    hash = hash128to64(mem.bytesAsSlice(u128, mem.sliceAsBytes(b[0..]))[0]);
     return hash;
 }
 
@@ -130,7 +129,7 @@ pub fn bytestreamHash(byte_data: [] const u8, seed : u64) u64
     const initial_hash = seed +% byte_size *% special_number;
     var hash = initial_hash;
     const byte_data_end_size = roundInteger(byte_size, @sizeOf(u64) * 2);
-    for (@bytesToSlice([2]u64, byte_data[0..byte_data_end_size])) |loop_data| {
+    for (mem.bytesAsSlice([2]u64, byte_data[0..byte_data_end_size])) |loop_data| {
         hash = finalizeHashTo64(hash, finalizeHashTo64(hashTo64(initial_hash, loop_data[0]), hashTo64(initial_hash, loop_data[1])));
     }
     return shortHashLoop(byte_data[byte_data_end_size..], byte_size - byte_data_end_size, initial_hash, hash);
@@ -166,7 +165,7 @@ pub fn fnvHash(byte_data : [] const u8, seed_in : u64) u64
         hash ^= b;
     }
     const seed = [1]u64{seed_in};
-    for (@sliceToBytes(seed[0..])) |b|
+    for (mem.sliceAsBytes(seed[0..])) |b|
     {
         hash *%= FNV_prime;
         hash ^= b;

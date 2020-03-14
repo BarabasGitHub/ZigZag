@@ -197,7 +197,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             var bucket_keys = self.bucketKeys(bucket_index);
             var index = bucket_keys.index;
             while (bucket_keys.next()) |key| : (index = bucket_keys.index) {
-                if (key.* == key_in) return index;
+                if (equal_function(key.*, key_in)) return index;
             }
             return null;
         }

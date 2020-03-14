@@ -553,8 +553,7 @@ test "FlatOrderedMap remove" {
 }
 
 test "FlatOrderedMap insert remove many" {
-    var allocator = std.heap.direct_allocator;
-    var container = FlatOrderedMap(u32, f64, less_u32).init(allocator);
+    var container = FlatOrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     const many = 1000;
@@ -597,8 +596,7 @@ fn levelsOk(flatMap: var, index: u64) bool {
 }
 
 test "FlatOrderedMap levels" {
-    var allocator = std.heap.direct_allocator;
-    var container = FlatOrderedMap(u32, f64, less_u32).init(allocator);
+    var container = FlatOrderedMap(u32, f64, less_u32).init(testing.allocator);
     defer container.deinit();
 
     const many = 1000;

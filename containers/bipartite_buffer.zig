@@ -182,7 +182,7 @@ fn createTestMessages(comptime message_count: usize) [message_count]TestMessage 
 }
 
 fn asByteSlice(comptime T: type, x: *const T) []const u8 {
-    return @sliceToBytes(@ptrCast([*]const T, x)[0..1]);
+    return std.mem.sliceAsBytes(@ptrCast([*]const T, x)[0..1]);
 }
 
 test "push pull messages" {

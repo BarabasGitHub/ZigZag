@@ -75,15 +75,19 @@ fn getHashValue(comptime BatchSize: usize, f: BatchedFloat2(BatchSize), seed: us
     const value = f.add(BatchedFloat2(BatchSize).zeroInit());
     const abcd = interleaveFloat(BatchSize, f.x, f.y);
     var r: [BatchSize]u32 = undefined;
-    for (r) |*e, i| {
-        e.* = @truncate(u32, @call(.{.modifier=std.builtin.CallOptions.Modifier.always_inline}, hf.bytestreamHash, .{@sliceToBytes(abcd[i * 2 .. (i + 1) * 2]), seed}));
+    var i: u32 = 0;
+    // TODO: unroll the loop. Currently Zig doesn't compile when inlining a loop with a @call
+    while (i < BatchSize) : (i += 1) {
+        r[i] = @truncate(u32, @call(.{.modifier=.always_inline}, hf.bytestreamHash, .{std.mem.sliceAsBytes(abcd[i * 2 .. (i + 1) * 2]), seed}));
     }
     return r;
 }
 
 fn getGradient2(comptime BatchSize: usize, hash: [BatchSize]u32) BatchedFloat2(BatchSize) {
     var r: BatchedFloat2(BatchSize) = undefined;
-    for (hash) |h, i| {
+    comptime var i: u32 = 0;
+    inline while (i < BatchSize) : (i += 1) {
+        const h = hash[i];
         const h1 = (h & 1) << 1;
         const h2 = (h & 2);
         const h4 = (h & 4) >> 2;
