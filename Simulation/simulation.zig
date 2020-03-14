@@ -3,6 +3,7 @@ const testing = std.testing;
 const mem = std.mem;
 const Allocator = mem.Allocator;
 const Data2D = @import("../containers/data_2d.zig").Data2D;
+const StructureOfArrays = @import("../containers/structure_of_arrays.zig").StructureOfArrays;
 
 usingnamespace @import("float3.zig");
 
@@ -13,29 +14,24 @@ const Force3D = Float3;
 const PointData = struct {
     const Self = @This();
 
-    positions : std.ArrayList(Position3D),
-    velocities : std.ArrayList(Velocity3D),
-    forces : std.ArrayList(Force3D),
+    const DataContainerType = StructureOfArrays(struct{position: Position3D, velocity: Velocity3D, force: Force3D});
+    data: DataContainerType,
 
     fn init(allocator: *Allocator) Self {
         return .{
-            .positions = std.ArrayList(Position3D).init(allocator),
-            .velocities = std.ArrayList(Velocity3D).init(allocator),
-            .forces = std.ArrayList(Float3).init(allocator),
+            .data = DataContainerType.init(allocator),
         };
     }
 
     fn deinit(self: Self) void {
-        self.positions.deinit();
-        self.velocities.deinit();
-        self.forces.deinit();
+        self.data.deinit();
     }
 
     fn addPoints(self: *Self, points : []const Position3D) !void {
-        try self.positions.appendSlice(points);
-        const old_len = self.velocities.len;
-        try self.velocities.appendNTimes(Velocity3D.initZero(), self.positions.len);
-        try self.forces.appendNTimes(Force3D.initZero(), self.positions.len);
+        try self.data.ensureCapacity(self.data.len + points.len);
+        for (points) |point| {
+            self.data.appendAssumeCapacity(.{.position=point, .velocity=Velocity3D.initZero(), .force=Force3D.initZero()});
+        }
     }
 };
 
@@ -45,14 +41,12 @@ test "PointData adding points results in the points being accessible and having 
     defer point_data.deinit();
     try point_data.addPoints(&points);
 
-    testing.expectEqual(points[0], point_data.positions.at(0));
-    testing.expectEqual(points[1], point_data.positions.at(1));
-    testing.expectEqual(points[2], point_data.positions.at(2));
+    testing.expectEqualSlices(Position3D, &points, point_data.data.toSlice("position"));
 
-    for (point_data.velocities.toSlice()) |velocity| {
+    for (point_data.data.toSlice("velocity")) |velocity| {
         testing.expectEqual(Velocity3D.initZero(), velocity);
     }
-    for (point_data.forces.toSlice()) |force| {
+    for (point_data.data.toSlice("force")) |force| {
         testing.expectEqual(Force3D.initZero(), force);
     }
 }
@@ -79,7 +73,7 @@ const Simulation = struct {
     }
 
     fn iterate(self: Self) void {
-        for (self.point_data.positions.toSlice()) |*p| {
+        for (self.point_data.data.toSlice("position")) |*p| {
             p.z = 0;
         }
     }
@@ -93,7 +87,7 @@ test "points drop and stay on flat land" {
 
     simulation.iterate();
 
-    testing.expectEqual(Position3D{.x=0, .y=0, .z=0}, simulation.point_data.positions.at(0));
-    testing.expectEqual(Position3D{.x=5, .y=5, .z=0}, simulation.point_data.positions.at(1));
-    testing.expectEqual(Position3D{.x=-5, .y=-5, .z=0}, simulation.point_data.positions.at(2));
+    testing.expectEqual(Position3D{.x=0, .y=0, .z=0}, simulation.point_data.data.at("position", 0));
+    testing.expectEqual(Position3D{.x=5, .y=5, .z=0}, simulation.point_data.data.at("position", 1));
+    testing.expectEqual(Position3D{.x=-5, .y=-5, .z=0}, simulation.point_data.data.at("position", 2));
 }
