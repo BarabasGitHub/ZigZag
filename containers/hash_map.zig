@@ -39,7 +39,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         }
 
         pub fn deinit(self: * Self) void {
-            self.node_key_value_storage.allocator.free(self.buckets);
+            self.node_key_value_storage.soa.allocator.free(self.buckets);
             self.node_key_value_storage.deinit();
         }
 
@@ -90,8 +90,8 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         }
 
         pub fn setBucketCount(self: * Self, count: usize) !void {
-            self.node_key_value_storage.allocator.free(self.buckets);
-            self.buckets = try self.node_key_value_storage.allocator.alloc(usize, count);
+            self.node_key_value_storage.soa.allocator.free(self.buckets);
+            self.buckets = try self.node_key_value_storage.soa.allocator.alloc(usize, count);
             std.mem.set(usize, self.buckets, std.math.maxInt(usize));
             var next = self.node_key_value_storage.nodes();
             // first mark the emtpy nodes
