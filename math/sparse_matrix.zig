@@ -55,7 +55,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
             self.sorted = true;
         }
 
-        pub fn sparistyRatio(self: Self) f32 {
+        pub fn sparsityRatio(self: Self) f32 {
             return @intToFloat(f32, self.numberOfElements()) / @intToFloat(f32, self.numberOfColumns() * self.numberOfRows());
         }
 
@@ -297,12 +297,12 @@ test "SparseMatrix init" {
     testing.expectEqual(matrix.numberOfElements(), 14);
 }
 
-test "SparseMatrix sparistyRatio and densityRatio" {
+test "SparseMatrix sparsityRatio and densityRatio" {
     var matrix = try SparseMatrix(f32).init(testing.allocator, 10, 5, 14);
     defer matrix.deinit();
 
     testing.expectEqual(matrix.densityRatio(), 50.0 / 14.0);
-    testing.expectEqual(matrix.sparistyRatio(), 14.0 / 50.0);
+    testing.expectEqual(matrix.sparsityRatio(), 14.0 / 50.0);
 }
 
 test "SparseMatrix columnsInRow and valuesInRow" {
