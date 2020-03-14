@@ -54,7 +54,7 @@ fn roundIntegerUp(i : usize, comptime r : usize) usize{
 }
 
 
-pub fn StructreOfArrays(comptime Structure: type) type {
+pub fn StructureOfArrays(comptime Structure: type) type {
     return struct {
         const fields = std.meta.fields(Structure);
         const maximum_alignment = maximumAlignment(fields);
@@ -84,7 +84,7 @@ pub fn StructreOfArrays(comptime Structure: type) type {
             };
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: Self) void {
             self.allocator.free(self.storage);
         }
 
@@ -105,10 +105,14 @@ pub fn StructreOfArrays(comptime Structure: type) type {
         }
 
         pub fn append(self: *Self, values: Structure) !void {
+            try self.ensureCapacity(self.len + 1);
+            self.appendAssumeCapacity(values);
+        }
+
+        pub fn appendAssumeCapacity(self: *Self, values: Structure) void {
+            std.debug.assert(self.capacity() > self.len);
             const old_size = self.len;
-            const new_size = old_size + 1;
-            try self.ensureCapacity(new_size);
-            self.len = new_size;
+            self.len = old_size + 1;
             inline for(fields) |field| {
                 self.set(field.name, old_size, @field(values, field.name));
             }
@@ -137,11 +141,11 @@ pub fn StructreOfArrays(comptime Structure: type) type {
         fn copyFromAssumingCapacity(self: *Self, other: Self) void {
             self.len = other.len;
             inline for (fields) |field| {
-                std.mem.copy(field.field_type, self.getSliceOf(field.name), other.getSliceOf(field.name));
+                std.mem.copy(field.field_type, self.toSlice(field.name), other.toSlice(field.name));
             }
         }
 
-        pub fn getSliceOf(self: Self, comptime field_name: []const u8) []findField(field_name, fields).field_type {
+        pub fn toSlice(self: Self, comptime field_name: []const u8) []findField(field_name, fields).field_type {
             comptime const FieldType = findField(field_name, fields).field_type;
             comptime const field_index = fieldIndex(field_name, fields);
             comptime const fields_size = totalSize(fields[0..field_index]);
@@ -150,11 +154,11 @@ pub fn StructreOfArrays(comptime Structure: type) type {
         }
 
         pub fn at(self: Self, comptime field_name: []const u8, index: usize) findField(field_name, fields).field_type {
-            return self.getSliceOf(field_name)[index];
+            return self.toSlice(field_name)[index];
         }
 
         pub fn set(self: Self, comptime field_name: []const u8, index: usize, value: findField(field_name, fields).field_type) void {
-            self.getSliceOf(field_name)[index] = value;
+            self.toSlice(field_name)[index] = value;
         }
 
         pub fn popBack(self: *Self) void {
@@ -176,24 +180,24 @@ const test_values = [_]TestStruct{
     .{ .a = 3, .b = 4.0, .c = 5 },
 };
 
-test "StructreOfArrays initialization" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays initialization" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     testing.expect(container.empty());
     testing.expectEqual(@as(usize, 0), container.capacity());
 }
 
-test "StructreOfArrays initialization with capacity" {
-    var container = try StructreOfArrays(TestStruct).initWithCapacity(testing.allocator, 32);
+test "StructureOfArrays initialization with capacity" {
+    var container = try StructureOfArrays(TestStruct).initWithCapacity(testing.allocator, 32);
     defer container.deinit();
 
     testing.expect(container.empty());
     testing.expectEqual(@as(usize, 32), container.capacity());
 }
 
-test "StructreOfArrays append elements" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays append elements" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     for (test_values) |val, i| {
@@ -205,8 +209,8 @@ test "StructreOfArrays append elements" {
     }
 }
 
-test "StructreOfArrays clear" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays clear" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     for (test_values) |val| {
@@ -219,8 +223,8 @@ test "StructreOfArrays clear" {
     testing.expect(container.empty());
 }
 
-test "StructreOfArrays set capacity" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays set capacity" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
     try container.setCapacity(10);
     testing.expect(container.capacity() >= 10);
@@ -229,8 +233,8 @@ test "StructreOfArrays set capacity" {
     testing.expectEqual(new_capacity, container.capacity());
 }
 
-test "StructreOfArrays grow capacity increases the capacity" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays grow capacity increases the capacity" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
     for ([_]usize{1, 10, 1}) |val| {
         const old_capacity = container.capacity();
@@ -239,8 +243,8 @@ test "StructreOfArrays grow capacity increases the capacity" {
     }
 }
 
-test "StructreOfArrays grow capacity maintains the values in the container" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays grow capacity maintains the values in the container" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     for (test_values) |val| {
@@ -256,8 +260,8 @@ test "StructreOfArrays grow capacity maintains the values in the container" {
     }
 }
 
-test "StructreOfArrays ensure capacity" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays ensure capacity" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
     try container.ensureCapacity(10);
     testing.expect(container.capacity() >= 10);
@@ -267,27 +271,27 @@ test "StructreOfArrays ensure capacity" {
     testing.expect(container.capacity() >= 20);
 }
 
-test "StructreOfArrays get slice of field" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays get slice of field" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     for (test_values) |val| {
         try container.append(val);
     }
 
-    testing.expectEqual(test_values.len, container.getSliceOf("a").len);
-    testing.expectEqual(test_values.len, container.getSliceOf("b").len);
-    testing.expectEqual(test_values.len, container.getSliceOf("c").len);
+    testing.expectEqual(test_values.len, container.toSlice("a").len);
+    testing.expectEqual(test_values.len, container.toSlice("b").len);
+    testing.expectEqual(test_values.len, container.toSlice("c").len);
 
     for (test_values) |val, i| {
-        testing.expectEqual(val.a, container.getSliceOf("a")[i]);
-        testing.expectEqual(val.b, container.getSliceOf("b")[i]);
-        testing.expectEqual(val.c, container.getSliceOf("c")[i]);
+        testing.expectEqual(val.a, container.toSlice("a")[i]);
+        testing.expectEqual(val.b, container.toSlice("b")[i]);
+        testing.expectEqual(val.c, container.toSlice("c")[i]);
     }
 }
 
-test "StructreOfArrays at" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays at" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     for (test_values) |val| {
@@ -301,8 +305,8 @@ test "StructreOfArrays at" {
     }
 }
 
-test "StructreOfArrays don't grow capacity if not needed" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays don't grow capacity if not needed" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     try container.setCapacity(16);
@@ -314,8 +318,8 @@ test "StructreOfArrays don't grow capacity if not needed" {
     testing.expectEqual(old_capacity, container.capacity());
 }
 
-test "StructreOfArrays pop back" {
-    var container = StructreOfArrays(TestStruct).init(testing.allocator);
+test "StructureOfArrays pop back" {
+    var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
 
     for (test_values) |val| {

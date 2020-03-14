@@ -2,7 +2,7 @@ const std = @import("std");
 const debug = std.debug;
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
-const StructreOfArrays = @import("structure_of_arrays.zig").StructreOfArrays;
+const StructureOfArrays = @import("structure_of_arrays.zig").StructureOfArrays;
 
 fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
     return std.mem.alignForward(@ptrToInt(p), @alignOf(Type)) - @ptrToInt(p);
@@ -11,7 +11,7 @@ fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
 pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Value: type) type {
     return struct{
         soa: SoAType,
-        const SoAType = StructreOfArrays(struct {node: Node, key: Key, value: Value,});
+        const SoAType = StructureOfArrays(struct {node: Node, key: Key, value: Value,});
 
         const Self = @This();
 
@@ -56,7 +56,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn nodes(self: Self) []Node {
-            return self.soa.getSliceOf("node");
+            return self.soa.toSlice("node");
         }
 
         pub fn nodeAt(self: Self, index: usize) Node {
@@ -64,7 +64,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn keys(self: Self) []Key {
-            return self.soa.getSliceOf("key");
+            return self.soa.toSlice("key");
         }
 
         pub fn keyAt(self: Self, index: usize) Key {
@@ -72,7 +72,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn values(self: Self) []Value {
-            return self.soa.getSliceOf("value");
+            return self.soa.toSlice("value");
         }
 
         pub fn valueAt(self: Self, index: usize) Value {
