@@ -23,10 +23,11 @@ pub fn SparseMatrix(comptime DataType: type) type {
                 .column_count = columns,
                 .sorted = true,
             };
+            errdefer self.deinit();
             try self.values.resize(elements);
             try self.column_indices.resize(elements);
             try self.row_offsets.resize(rows + 1);
-            std.mem.set(u32, self.row_offsets.toSlice(), 0);
+            std.mem.set(u32, self.row_offsets.span(), 0);
             return self;
         }
 
@@ -51,7 +52,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         pub fn clear(self: *Self) void {
             self.values.shrink(0);
             self.column_indices.shrink(0);
-            std.mem.set(u32, self.row_offsets.toSlice(), 0);
+            std.mem.set(u32, self.row_offsets.span(), 0);
             self.sorted = true;
         }
 
@@ -66,13 +67,13 @@ pub fn SparseMatrix(comptime DataType: type) type {
         pub fn columnsInRow(self: Self, row: u32) []u32 {
             const offset_start = self.row_offsets.at(row);
             const offset_end = self.row_offsets.at(row + 1);
-            return self.column_indices.toSlice()[offset_start..offset_end];
+            return self.column_indices.span()[offset_start..offset_end];
         }
 
         pub fn valuesInRow(self: Self, row: u32) []DataType {
             const offset_start = self.row_offsets.at(row);
             const offset_end = self.row_offsets.at(row + 1);
-            return self.values.toSlice()[offset_start..offset_end];
+            return self.values.span()[offset_start..offset_end];
         }
 
         fn elementIndex(self: Self, row: u32, column: u32) u32 {
@@ -82,14 +83,14 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn getElement(self: Self, row: u32, column: u32) *DataType {
-            return &self.values.toSlice()[self.elementIndex(row, column)];
+            return &self.values.span()[self.elementIndex(row, column)];
         }
 
         pub fn addElement(self: *Self, row: u32, column: u32, value: DataType) !void {
             const index = self.row_offsets.at(row + 1);
             try self.column_indices.insert(index, column);
             try self.values.insert(index, value);
-            for (self.row_offsets.toSlice()[row + 1 ..]) |*offset| {
+            for (self.row_offsets.span()[row + 1 ..]) |*offset| {
                 offset.* += 1;
             }
             self.sorted = index > self.row_offsets.at(row) and self.column_indices.at(index - 1) < self.column_indices.at(index);
@@ -97,10 +98,10 @@ pub fn SparseMatrix(comptime DataType: type) type {
 
         pub fn removeZeroEntries(self: *Self) void {
             var removedCount : u32 = 0;
-            for (self.row_offsets.toSlice()[1..]) |end, i| {
+            for (self.row_offsets.span()[1..]) |end, i| {
                 const start = self.row_offsets.at(i);
                 self.row_offsets.set(i, start - removedCount);
-                for (self.values.toSlice()[start..end]) |v, j| {
+                for (self.values.span()[start..end]) |v, j| {
                     if (v == 0) {
                         removedCount += 1;
                     } else if (removedCount > 0) {
@@ -129,8 +130,8 @@ pub fn SparseMatrix(comptime DataType: type) type {
             try transposed.column_indices.resize(element_count);
 
             // count the number of elements in columns and store them in the output row indices
-            const column_counts = transposed.row_offsets.toSlice()[1..];
-            for (self.column_indices.toSlice()) |column| {
+            const column_counts = transposed.row_offsets.span()[1..];
+            for (self.column_indices.span()) |column| {
                 column_counts[column] += 1;
             }
 
@@ -218,7 +219,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
 
                 try c.values.ensureCapacity(c.column_indices.capacity());
 
-                for (c.column_indices.toSlice()[c.row_offsets.at(row_c)..c.column_indices.len]) |column_c| {
+                for (c.column_indices.span()[c.row_offsets.at(row_c)..c.column_indices.len]) |column_c| {
                     const value_ab = workspace[column_c];
                     c.values.appendAssumeCapacity(value_ab);
                 }
@@ -283,9 +284,9 @@ pub fn SparseMatrix(comptime DataType: type) type {
 // Doesn't really work correctly, only if both matrices are completely sorted and have no extra elements
 fn equal(a: SparseMatrix(f32), b: SparseMatrix(f32)) bool {
     return a.column_count == b.column_count and
-        std.mem.eql(f32, a.values.toSlice(), b.values.toSlice()) and
-        std.mem.eql(u32, a.column_indices.toSlice(), b.column_indices.toSlice()) and
-        std.mem.eql(u32, a.row_offsets.toSlice(), b.row_offsets.toSlice());
+        std.mem.eql(f32, a.values.span(), b.values.span()) and
+        std.mem.eql(u32, a.column_indices.span(), b.column_indices.span()) and
+        std.mem.eql(u32, a.row_offsets.span(), b.row_offsets.span());
 }
 
 test "SparseMatrix init" {
@@ -309,16 +310,16 @@ test "SparseMatrix columnsInRow and valuesInRow" {
     var matrix = try SparseMatrix(f32).init(testing.allocator, 5, 10, 14);
     defer matrix.deinit();
 
-    for (matrix.values.toSlice()) |*v, i| {
+    for (matrix.values.span()) |*v, i| {
         v.* = @intToFloat(f32, i);
     }
 
-    for (matrix.column_indices.toSlice()) |*c, i| {
+    for (matrix.column_indices.span()) |*c, i| {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
     var offset : u32 = 0;
-    for (matrix.row_offsets.toSlice()) |*o| {
+    for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
     }
@@ -368,16 +369,16 @@ test "SparseMatrix get element" {
     var matrix = try SparseMatrix(f32).init(testing.allocator, 5, 10, 14);
     defer matrix.deinit();
 
-    for (matrix.values.toSlice()) |*v, i| {
+    for (matrix.values.span()) |*v, i| {
         v.* = @intToFloat(f32, i);
     }
 
-    for (matrix.column_indices.toSlice()) |*c, i| {
+    for (matrix.column_indices.span()) |*c, i| {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
     var offset : u32 = 0;
-    for (matrix.row_offsets.toSlice()) |*o| {
+    for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
     }
@@ -415,16 +416,16 @@ test "SparseMatrix remove zero entries" {
     var matrix = try SparseMatrix(f32).init(testing.allocator, 5, 10, 14);
     defer matrix.deinit();
 
-    for (matrix.values.toSlice()) |*v, i| {
+    for (matrix.values.span()) |*v, i| {
         v.* = @intToFloat(f32, i % 2);
     }
 
-    for (matrix.column_indices.toSlice()) |*c, i| {
+    for (matrix.column_indices.span()) |*c, i| {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
     var offset : u32 = 0;
-    for (matrix.row_offsets.toSlice()) |*o| {
+    for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
     }
@@ -437,16 +438,16 @@ test "SparseMatrix transpose" {
     var matrix = try SparseMatrix(f32).init(testing.allocator, 5, 10, 14);
     defer matrix.deinit();
 
-    for (matrix.values.toSlice()) |*v, i| {
+    for (matrix.values.span()) |*v, i| {
         v.* = @intToFloat(f32, i);
     }
 
-    for (matrix.column_indices.toSlice()) |*c, i| {
+    for (matrix.column_indices.span()) |*c, i| {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
     var offset : u32 = 0;
-    for (matrix.row_offsets.toSlice()) |*o| {
+    for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
     }
@@ -479,9 +480,9 @@ test "SparseMatrix multiply" {
     // 0, 6, 0, 0, 7,
     var matrix_a = try SparseMatrix(f32).init(testing.allocator, 4, 5, 7);
     defer matrix_a.deinit();
-    std.mem.copy(u32, matrix_a.column_indices.toSlice(), &[_]u32{ 2, 1, 3, 0, 3, 1, 4 });
-    std.mem.copy(u32, matrix_a.row_offsets.toSlice(), &[_]u32{ 0, 1, 3, 5, 7 });
-    std.mem.copy(f32, matrix_a.values.toSlice(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
+    std.mem.copy(u32, matrix_a.column_indices.span(), &[_]u32{ 2, 1, 3, 0, 3, 1, 4 });
+    std.mem.copy(u32, matrix_a.row_offsets.span(), &[_]u32{ 0, 1, 3, 5, 7 });
+    std.mem.copy(f32, matrix_a.values.span(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
 
     // 0, 0, 1,
     // 0, 2, 3,
@@ -491,9 +492,9 @@ test "SparseMatrix multiply" {
 
     var matrix_b = try SparseMatrix(f32).init(testing.allocator, 5, 3, 7);
     defer matrix_b.deinit();
-    std.mem.copy(u32, matrix_b.column_indices.toSlice(), &[_]u32{ 2, 1, 2, 0, 1, 2, 0 });
-    std.mem.copy(u32, matrix_b.row_offsets.toSlice(), &[_]u32{ 0, 1, 3, 4, 6, 7 });
-    std.mem.copy(f32, matrix_b.values.toSlice(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
+    std.mem.copy(u32, matrix_b.column_indices.span(), &[_]u32{ 2, 1, 2, 0, 1, 2, 0 });
+    std.mem.copy(u32, matrix_b.row_offsets.span(), &[_]u32{ 0, 1, 3, 4, 6, 7 });
+    std.mem.copy(f32, matrix_b.values.span(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
 
     // 4,   0,  0,
     // 0,  19, 24,
@@ -502,9 +503,9 @@ test "SparseMatrix multiply" {
 
     var expected = try SparseMatrix(f32).init(testing.allocator, 4, 3, 8);
     defer expected.deinit();
-    std.mem.copy(u32, expected.column_indices.toSlice(), &[_]u32{ 0, 1, 2, 1, 2, 0, 1, 2 });
-    std.mem.copy(u32, expected.row_offsets.toSlice(), &[_]u32{ 0, 1, 3, 5, 8 });
-    std.mem.copy(f32, expected.values.toSlice(), &[_]f32{ 4, 19, 24, 25, 34, 49, 12, 18 });
+    std.mem.copy(u32, expected.column_indices.span(), &[_]u32{ 0, 1, 2, 1, 2, 0, 1, 2 });
+    std.mem.copy(u32, expected.row_offsets.span(), &[_]u32{ 0, 1, 3, 5, 8 });
+    std.mem.copy(f32, expected.values.span(), &[_]f32{ 4, 19, 24, 25, 34, 49, 12, 18 });
 
     var result = try SparseMatrix(f32).init(testing.allocator, 0, 0, 0);
     defer result.deinit();
@@ -527,9 +528,9 @@ test "SparseMatrix multiplyAdd" {
     // 7, 0, 0,
     var matrix = try SparseMatrix(f32).init(testing.allocator, 5, 3, 7);
     defer matrix.deinit();
-    std.mem.copy(u32, matrix.column_indices.toSlice(), &[_]u32{ 2, 1, 2, 0, 1, 2, 0 });
-    std.mem.copy(u32, matrix.row_offsets.toSlice(), &[_]u32{ 0, 1, 3, 4, 6, 7 });
-    std.mem.copy(f32, matrix.values.toSlice(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
+    std.mem.copy(u32, matrix.column_indices.span(), &[_]u32{ 2, 1, 2, 0, 1, 2, 0 });
+    std.mem.copy(u32, matrix.row_offsets.span(), &[_]u32{ 0, 1, 3, 4, 6, 7 });
+    std.mem.copy(f32, matrix.values.span(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
 
     const x = [_]f32{ 1, 2, 3 };
     var y = [_]f32{ 1, 2, 3, 4, 5 };
@@ -550,9 +551,9 @@ test "SparseMatrix multiplyAddTransposed" {
     // 7, 0, 0,
     var matrix = try SparseMatrix(f32).init(testing.allocator, 5, 3, 7);
     defer matrix.deinit();
-    std.mem.copy(u32, matrix.column_indices.toSlice(), &[_]u32{ 2, 1, 2, 0, 1, 2, 0 });
-    std.mem.copy(u32, matrix.row_offsets.toSlice(), &[_]u32{ 0, 1, 3, 4, 6, 7 });
-    std.mem.copy(f32, matrix.values.toSlice(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
+    std.mem.copy(u32, matrix.column_indices.span(), &[_]u32{ 2, 1, 2, 0, 1, 2, 0 });
+    std.mem.copy(u32, matrix.row_offsets.span(), &[_]u32{ 0, 1, 3, 4, 6, 7 });
+    std.mem.copy(f32, matrix.values.span(), &[_]f32{ 1, 2, 3, 4, 5, 6, 7 });
 
     const x = [_]f32{ 1, 2, 3, 4, 5 };
     var y = [_]f32{ 1, 2, 3 };

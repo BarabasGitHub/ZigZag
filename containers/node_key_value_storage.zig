@@ -56,7 +56,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn nodes(self: Self) []Node {
-            return self.soa.toSlice("node");
+            return self.soa.span("node");
         }
 
         pub fn nodeAt(self: Self, index: usize) Node {
@@ -64,7 +64,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn keys(self: Self) []Key {
-            return self.soa.toSlice("key");
+            return self.soa.span("key");
         }
 
         pub fn keyAt(self: Self, index: usize) Key {
@@ -72,7 +72,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn values(self: Self) []Value {
-            return self.soa.toSlice("value");
+            return self.soa.span("value");
         }
 
         pub fn valueAt(self: Self, index: usize) Value {

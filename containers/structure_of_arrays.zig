@@ -141,11 +141,11 @@ pub fn StructureOfArrays(comptime Structure: type) type {
         fn copyFromAssumingCapacity(self: *Self, other: Self) void {
             self.len = other.len;
             inline for (fields) |field| {
-                std.mem.copy(field.field_type, self.toSlice(field.name), other.toSlice(field.name));
+                std.mem.copy(field.field_type, self.span(field.name), other.span(field.name));
             }
         }
 
-        pub fn toSlice(self: Self, comptime field_name: []const u8) []findField(field_name, fields).field_type {
+        pub fn span(self: Self, comptime field_name: []const u8) []findField(field_name, fields).field_type {
             comptime const FieldType = findField(field_name, fields).field_type;
             comptime const field_index = fieldIndex(field_name, fields);
             comptime const fields_size = totalSize(fields[0..field_index]);
@@ -154,11 +154,11 @@ pub fn StructureOfArrays(comptime Structure: type) type {
         }
 
         pub fn at(self: Self, comptime field_name: []const u8, index: usize) findField(field_name, fields).field_type {
-            return self.toSlice(field_name)[index];
+            return self.span(field_name)[index];
         }
 
         pub fn set(self: Self, comptime field_name: []const u8, index: usize, value: findField(field_name, fields).field_type) void {
-            self.toSlice(field_name)[index] = value;
+            self.span(field_name)[index] = value;
         }
 
         pub fn popBack(self: *Self) void {
@@ -279,14 +279,14 @@ test "StructureOfArrays get slice of field" {
         try container.append(val);
     }
 
-    testing.expectEqual(test_values.len, container.toSlice("a").len);
-    testing.expectEqual(test_values.len, container.toSlice("b").len);
-    testing.expectEqual(test_values.len, container.toSlice("c").len);
+    testing.expectEqual(test_values.len, container.span("a").len);
+    testing.expectEqual(test_values.len, container.span("b").len);
+    testing.expectEqual(test_values.len, container.span("c").len);
 
     for (test_values) |val, i| {
-        testing.expectEqual(val.a, container.toSlice("a")[i]);
-        testing.expectEqual(val.b, container.toSlice("b")[i]);
-        testing.expectEqual(val.c, container.toSlice("c")[i]);
+        testing.expectEqual(val.a, container.span("a")[i]);
+        testing.expectEqual(val.b, container.span("b")[i]);
+        testing.expectEqual(val.c, container.span("c")[i]);
     }
 }
 

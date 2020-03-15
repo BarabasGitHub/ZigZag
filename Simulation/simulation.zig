@@ -41,12 +41,12 @@ test "PointData adding points results in the points being accessible and having 
     defer point_data.deinit();
     try point_data.addPoints(&points);
 
-    testing.expectEqualSlices(Position3D, &points, point_data.data.toSlice("position"));
+    testing.expectEqualSlices(Position3D, &points, point_data.data.span("position"));
 
-    for (point_data.data.toSlice("velocity")) |velocity| {
+    for (point_data.data.span("velocity")) |velocity| {
         testing.expectEqual(Velocity3D.initZero(), velocity);
     }
-    for (point_data.data.toSlice("force")) |force| {
+    for (point_data.data.span("force")) |force| {
         testing.expectEqual(Force3D.initZero(), force);
     }
 }
@@ -73,7 +73,7 @@ const Simulation = struct {
     }
 
     fn iterate(self: Self) void {
-        for (self.point_data.data.toSlice("position")) |*p| {
+        for (self.point_data.data.span("position")) |*p| {
             p.z = 0;
         }
     }
