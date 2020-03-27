@@ -23,7 +23,8 @@ pub fn BipartiteBuffer() type {
                 .reading_size = 0,
                 .allocator = allocator,
             };
-            self.primary = self.memory[0..0];
+            self.primary.ptr = self.memory.ptr;
+            self.primary.len = 0;
             return self;
         }
 
@@ -99,9 +100,11 @@ pub fn BipartiteBuffer() type {
 
         pub fn discardAll(self: *Self) void {
             if (self.reserved.len == 0) {
-                self.primary = self.memory[0..0];
+                self.primary.ptr = self.memory.ptr;
+                self.primary.len = 0;
             } else {
-                self.primary = self.reserved[0..0];
+                self.primary.ptr = self.reserved.ptr;
+                self.primary.len = 0;
             }
             self.secondary_size = 0;
         }
