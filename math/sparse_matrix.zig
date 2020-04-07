@@ -38,7 +38,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn numberOfRows(self: Self) u32 {
-            return @intCast(u32, self.row_offsets.len - 1);
+            return @intCast(u32, self.row_offsets.items.len - 1);
         }
 
         pub fn numberOfColumns(self: Self) u32 {
@@ -46,7 +46,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn numberOfElements(self: Self) u32 {
-            return @intCast(u32, self.column_indices.len);
+            return @intCast(u32, self.column_indices.items.len);
         }
 
         pub fn clear(self: *Self) void {
@@ -111,8 +111,8 @@ pub fn SparseMatrix(comptime DataType: type) type {
                     }
                 }
             }
-            const value_count = self.row_offsets.at(self.row_offsets.len - 1) - removedCount;
-            self.row_offsets.set(self.row_offsets.len - 1, value_count);
+            const value_count = self.row_offsets.at(self.row_offsets.items.len - 1) - removedCount;
+            self.row_offsets.set(self.row_offsets.items.len - 1, value_count);
             self.values.shrink(value_count);
             self.column_indices.shrink(value_count);
         }
@@ -174,7 +174,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
             defer workspace_allocator.free(used);
 
             c.row_offsets.shrink(0);
-            try c.row_offsets.resize(a.row_offsets.len);
+            try c.row_offsets.resize(a.row_offsets.items.len);
             c.column_count = column_count_b;
             c.column_indices.shrink(0);
             c.values.shrink(0);
@@ -183,14 +183,14 @@ pub fn SparseMatrix(comptime DataType: type) type {
             // reserve the amount for our first guess
             try c.column_indices.ensureCapacity(a.numberOfElements() + b.numberOfElements());
             // set our first estimate to whatever we have room for
-            var sparsity_estimate = @intToFloat(f32, c.column_indices.capacity()) / maximum_elements;
+            var sparsity_estimate = @intToFloat(f32, c.column_indices.capacity) / maximum_elements;
             std.mem.set(u32, used, 0);
 
             const row_count_a = a.numberOfRows();
             var row_a : u32 = 0;
             while (row_a < row_count_a) : (row_a += 1) {
                 const row_c = row_a;
-                c.row_offsets.set(row_c, @intCast(u32, c.column_indices.len));
+                c.row_offsets.set(row_c, @intCast(u32, c.column_indices.items.len));
 
                 const used_mark = row_a + 1;
 
@@ -217,14 +217,14 @@ pub fn SparseMatrix(comptime DataType: type) type {
                     }
                 }
 
-                try c.values.ensureCapacity(c.column_indices.capacity());
+                try c.values.ensureCapacity(c.column_indices.capacity);
 
-                for (c.column_indices.span()[c.row_offsets.at(row_c)..c.column_indices.len]) |column_c| {
+                for (c.column_indices.span()[c.row_offsets.at(row_c)..c.column_indices.items.len]) |column_c| {
                     const value_ab = workspace[column_c];
                     c.values.appendAssumeCapacity(value_ab);
                 }
 
-                const new_sparsity_estimate = @intToFloat(f32, c.values.len) / (@intToFloat(f32, c.numberOfColumns()) * @intToFloat(f32, row_a + 1));
+                const new_sparsity_estimate = @intToFloat(f32, c.values.items.len) / (@intToFloat(f32, c.numberOfColumns()) * @intToFloat(f32, row_a + 1));
                 if (new_sparsity_estimate > sparsity_estimate) {
                     // make room for at least 30% more elements
                     sparsity_estimate = std.math.max(new_sparsity_estimate, 1.3 * sparsity_estimate);
@@ -234,7 +234,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
                 }
             }
 
-            c.row_offsets.set(c.row_offsets.len - 1, @intCast(u32, c.column_indices.len));
+            c.row_offsets.set(c.row_offsets.items.len - 1, @intCast(u32, c.column_indices.items.len));
             c.sorted = false;
         }
 

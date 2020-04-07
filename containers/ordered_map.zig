@@ -494,7 +494,7 @@ test "OrderedMap remove" {
 }
 
 test "OrderedMap insert remove many" {
-    var allocator = std.heap.direct_allocator;
+    var allocator = std.testing.allocator;
     var container = OrderedMap(u32, f64, less_u32).init(allocator);
     defer container.deinit();
 
@@ -533,7 +533,7 @@ fn levelsOk(flatMap: var, node0: *@TypeOf(flatMap).Node) bool {
 }
 
 test "OrderedMap levels" {
-    var container = OrderedMap(u32, f64, less_u32).init(std.heap.direct_allocator);
+    var container = OrderedMap(u32, f64, less_u32).init(std.testing.allocator);
     defer container.deinit();
 
     const many = 1000;

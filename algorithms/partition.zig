@@ -201,7 +201,7 @@ fn makeRandomData(comptime size: usize) [size]i64 {
     var r = std.rand.DefaultPrng.init(1234);
     var values: [size]i64 = undefined;
     for (values) |*value|{
-        value.* = @bitCast(i64, r.random.range(u64, 0, size * 2)) - @intCast(i64, size);
+        value.* = @bitCast(i64, r.random.intRangeLessThan(u64, 0, size * 2)) - @intCast(i64, size);
     }
     return values;
 }
