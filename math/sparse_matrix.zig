@@ -65,20 +65,20 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn columnsInRow(self: Self, row: u32) []u32 {
-            const offset_start = self.row_offsets.at(row);
-            const offset_end = self.row_offsets.at(row + 1);
+            const offset_start = self.row_offsets.items[row];
+            const offset_end = self.row_offsets.items[row + 1];
             return self.column_indices.span()[offset_start..offset_end];
         }
 
         pub fn valuesInRow(self: Self, row: u32) []DataType {
-            const offset_start = self.row_offsets.at(row);
-            const offset_end = self.row_offsets.at(row + 1);
+            const offset_start = self.row_offsets.items[row];
+            const offset_end = self.row_offsets.items[row + 1];
             return self.values.span()[offset_start..offset_end];
         }
 
         fn elementIndex(self: Self, row: u32, column: u32) u32 {
             return for (self.columnsInRow(row)) |c, i| {
-                if (c == column) break @intCast(u32, i + self.row_offsets.at(row));
+                if (c == column) break @intCast(u32, i + self.row_offsets.items[row]);
             } else unreachable;
         }
 
@@ -87,32 +87,32 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn addElement(self: *Self, row: u32, column: u32, value: DataType) !void {
-            const index = self.row_offsets.at(row + 1);
+            const index = self.row_offsets.items[row + 1];
             try self.column_indices.insert(index, column);
             try self.values.insert(index, value);
             for (self.row_offsets.span()[row + 1 ..]) |*offset| {
                 offset.* += 1;
             }
-            self.sorted = index > self.row_offsets.at(row) and self.column_indices.at(index - 1) < self.column_indices.at(index);
+            self.sorted = index > self.row_offsets.items[row] and self.column_indices.items[index - 1] < self.column_indices.items[index];
         }
 
         pub fn removeZeroEntries(self: *Self) void {
             var removedCount : u32 = 0;
             for (self.row_offsets.span()[1..]) |end, i| {
-                const start = self.row_offsets.at(i);
-                self.row_offsets.set(i, start - removedCount);
+                const start = self.row_offsets.items[i];
+                self.row_offsets.items[i] = start - removedCount;
                 for (self.values.span()[start..end]) |v, j| {
                     if (v == 0) {
                         removedCount += 1;
                     } else if (removedCount > 0) {
                         const offset = start + @intCast(u32, j);
-                        self.values.set(offset - removedCount, v);
-                        self.column_indices.set(offset - removedCount, self.column_indices.at(offset));
+                        self.values.items[offset - removedCount] = v;
+                        self.column_indices.items[offset - removedCount] = self.column_indices.items[offset];
                     }
                 }
             }
-            const value_count = self.row_offsets.at(self.row_offsets.items.len - 1) - removedCount;
-            self.row_offsets.set(self.row_offsets.items.len - 1, value_count);
+            const value_count = self.row_offsets.items[self.row_offsets.items.len - 1] - removedCount;
+            self.row_offsets.items[self.row_offsets.items.len - 1] = value_count;
             self.values.shrink(value_count);
             self.column_indices.shrink(value_count);
         }
@@ -155,8 +155,8 @@ pub fn SparseMatrix(comptime DataType: type) type {
                     const current_column_count = &column_counts[column];
                     const destination_index = current_column_count.*;
                     current_column_count.* += 1;
-                    transposed.column_indices.set(destination_index, old_row);
-                    transposed.values.set(destination_index, values[i]);
+                    transposed.column_indices.items[destination_index] = old_row;
+                    transposed.values.items[destination_index] = values[i];
                 }
             }
             transposed.sorted = true;
@@ -190,23 +190,23 @@ pub fn SparseMatrix(comptime DataType: type) type {
             var row_a : u32 = 0;
             while (row_a < row_count_a) : (row_a += 1) {
                 const row_c = row_a;
-                c.row_offsets.set(row_c, @intCast(u32, c.column_indices.items.len));
+                c.row_offsets.items[row_c] = @intCast(u32, c.column_indices.items.len);
 
                 const used_mark = row_a + 1;
 
-                const index_a_end = a.row_offsets.at(row_a + 1);
-                var index_a = a.row_offsets.at(row_a);
+                const index_a_end = a.row_offsets.items[row_a + 1];
+                var index_a = a.row_offsets.items[row_a];
                 while (index_a < index_a_end) : (index_a += 1) {
-                    const column_a = a.column_indices.at(index_a);
-                    const value_a = a.values.at(index_a);
+                    const column_a = a.column_indices.items[index_a];
+                    const value_a = a.values.items[index_a];
 
                     const row_b = column_a;
                     // scatter
-                    const index_b_end = b.row_offsets.at(row_b + 1);
-                    var index_b = b.row_offsets.at(row_b);
+                    const index_b_end = b.row_offsets.items[row_b + 1];
+                    var index_b = b.row_offsets.items[row_b];
                     while (index_b < index_b_end) : (index_b += 1) {
-                        const column_b = b.column_indices.at(index_b);
-                        const value_b = b.values.at(index_b);
+                        const column_b = b.column_indices.items[index_b];
+                        const value_b = b.values.items[index_b];
                         if (used[column_b] < used_mark) {
                             used[column_b] = used_mark;
                             try c.column_indices.append(column_b);
@@ -219,7 +219,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
 
                 try c.values.ensureCapacity(c.column_indices.capacity);
 
-                for (c.column_indices.span()[c.row_offsets.at(row_c)..c.column_indices.items.len]) |column_c| {
+                for (c.column_indices.span()[c.row_offsets.items[row_c]..c.column_indices.items.len]) |column_c| {
                     const value_ab = workspace[column_c];
                     c.values.appendAssumeCapacity(value_ab);
                 }
@@ -234,7 +234,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
                 }
             }
 
-            c.row_offsets.set(c.row_offsets.items.len - 1, @intCast(u32, c.column_indices.items.len));
+            c.row_offsets.items[c.row_offsets.items.len - 1] = @intCast(u32, c.column_indices.items.len);
             c.sorted = false;
         }
 
