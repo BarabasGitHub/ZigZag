@@ -7,17 +7,17 @@ const Allocator = std.mem.Allocator;
 
 pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function: fn (key: Key) usize, comptime equal_function: fn (a: Key, b: Key) bool) type {
     return struct {
-        buckets : []usize,
-        empty_node : usize,
-        node_key_value_storage : nkv.NodeKeyValueStorage(usize, Key, Value),
+        buckets: []usize,
+        empty_node: usize,
+        node_key_value_storage: nkv.NodeKeyValueStorage(usize, Key, Value),
         const Self = @This();
 
         pub const KeyBucketIterator = struct {
-            index : usize,
-            nextNodes : []usize,
-            keys : []Key,
+            index: usize,
+            nextNodes: []usize,
+            keys: []Key,
 
-            pub fn next(self : *KeyBucketIterator) ?*Key {
+            pub fn next(self: *KeyBucketIterator) ?*Key {
                 if (self.index != std.math.maxInt(usize)) {
                     const key = &self.keys[self.index];
                     self.index = self.nextNodes[self.index];
@@ -38,12 +38,12 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             return self;
         }
 
-        pub fn deinit(self: * Self) void {
+        pub fn deinit(self: Self) void {
             self.node_key_value_storage.soa.allocator.free(self.buckets);
             self.node_key_value_storage.deinit();
         }
 
-        pub fn clear(self: * Self) void {
+        pub fn clear(self: *Self) void {
             std.mem.set(usize, self.buckets, std.math.maxInt(usize));
             self.empty_node = std.math.maxInt(usize);
             self.node_key_value_storage.clear();
@@ -60,9 +60,9 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
 
         pub fn countEmptyElements(self: Self) usize {
             var i = self.empty_node;
-            var count : usize = 0;
+            var count: usize = 0;
             const next = self.node_key_value_storage.nodes();
-            while(i != std.math.maxInt(usize)) {
+            while (i != std.math.maxInt(usize)) {
                 i = next[i];
                 count += 1;
             }
@@ -81,15 +81,15 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             return @intToFloat(f32, self.countElements()) / @intToFloat(f32, self.bucketCount());
         }
 
-        pub fn hashValue(self: Self, key : Key) usize {
+        pub fn hashValue(self: Self, key: Key) usize {
             return hash_function(key);
         }
 
-        pub fn bucketIndex(self: Self, key : Key) usize {
+        pub fn bucketIndex(self: Self, key: Key) usize {
             return hash_function(key) % self.bucketCount();
         }
 
-        pub fn setBucketCount(self: * Self, count: usize) !void {
+        pub fn setBucketCount(self: *Self, count: usize) !void {
             self.node_key_value_storage.soa.allocator.free(self.buckets);
             self.buckets = try self.node_key_value_storage.soa.allocator.alloc(usize, count);
             std.mem.set(usize, self.buckets, std.math.maxInt(usize));
@@ -105,11 +105,11 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             }
             self.empty_node = std.math.maxInt(usize);
             const keys = self.node_key_value_storage.keys();
-            var i : usize = 0;
+            var i: usize = 0;
             const size = self.node_key_value_storage.size();
-            while(i < size) : (i += 1) {
-                var index : * usize = undefined;
-                if(next[i] == std.math.maxInt(usize) - 1) {
+            while (i < size) : (i += 1) {
+                var index: *usize = undefined;
+                if (next[i] == std.math.maxInt(usize) - 1) {
                     // update empty list
                     index = &self.empty_node;
                 } else {
@@ -123,12 +123,12 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             }
         }
 
-        pub fn increaseBucketCount(self: * Self) !void {
+        pub fn increaseBucketCount(self: *Self) !void {
             try self.setBucketCount(self.bucketCount() * 2);
         }
 
-        pub fn insert(self: * Self, key: Key, value: Value) !void {
-            if(self.loadFactor() > 0.88) {
+        pub fn insert(self: *Self, key: Key, value: Value) !void {
+            if (self.loadFactor() > 0.88) {
                 try self.increaseBucketCount();
             }
             const bucket_index = self.bucketIndex(key);
@@ -136,12 +136,13 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             var keys = self.node_key_value_storage.keys();
             var next = self.node_key_value_storage.nodes();
             var i = previous_next.*;
-            while(i != std.math.maxInt(usize) and !equal_function(keys[i], key)) {
+            while (i != std.math.maxInt(usize) and !equal_function(keys[i], key)) {
                 previous_next = &next[i];
                 i = previous_next.*;
-            } else if(i == std.math.maxInt(usize)) {
+            } else if (i == std.math.maxInt(usize)) {
                 if (self.empty_node == std.math.maxInt(usize)) {
-                    previous_next.* = self.node_key_value_storage.size();
+                    const index = self.node_key_value_storage.size();
+                    previous_next.* = index;
                     try self.node_key_value_storage.append(std.math.maxInt(usize), key, value);
                 } else {
                     const index = self.empty_node;
@@ -169,13 +170,13 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         }
 
         /// returns false if the element wasn't there
-        pub fn remove(self: * Self, key: Key) bool {
+        pub fn remove(self: *Self, key: Key) bool {
             const bucket_index = self.bucketIndex(key);
             if (self.keyIndexFromBucketIndex(key, bucket_index)) |index| {
                 var previous = &self.buckets[bucket_index];
                 var i = previous.*;
                 const next = self.node_key_value_storage.nodes();
-                while(i != index) {
+                while (i != index) {
                     previous = &next[i];
                     i = previous.*;
                 }
@@ -210,22 +211,22 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             };
         }
 
-        pub fn growCapacity(self : * Self) !void {
+        pub fn growCapacity(self: *Self) !void {
             try self.node_key_value_storage.growCapacity(1);
         }
 
-        pub fn setCapacity(self : * Self, new_capacity : usize) !void {
+        pub fn setCapacity(self: *Self, new_capacity: usize) !void {
             try self.node_key_value_storage.setCapacity(new_capacity);
         }
     };
 }
 
-fn test_hash(f : f64) usize {
+fn test_hash(f: f64) usize {
     const a = @bitCast([8]u8, f);
     return hf.bytestreamHash(&a, 32426578264);
 }
 
-fn test_equals(a : f64, b : f64) bool {
+fn test_equals(a: f64, b: f64) bool {
     return a == b;
 }
 
@@ -251,7 +252,6 @@ test "increase HashMap bucket count" {
     try map.increaseBucketCount();
     testing.expectEqual(map.bucketCount(), 4);
 }
-
 
 test "set and grow HashMap capacity" {
     var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);

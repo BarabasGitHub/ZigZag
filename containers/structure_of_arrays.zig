@@ -37,22 +37,21 @@ fn sumOfAlignments(comptime fields: []std.builtin.TypeInfo.StructField) comptime
     return sum;
 }
 
-fn lessThanForStructFieldAlignment(comptime a: std.builtin.TypeInfo.StructField, comptime b: std.builtin.TypeInfo.StructField) bool {
+fn lessThanForStructFieldAlignment(_: void, comptime a: std.builtin.TypeInfo.StructField, comptime b: std.builtin.TypeInfo.StructField) bool {
     return @alignOf(a.field_type) < @alignOf(b.field_type);
 }
 
 fn maximumAlignment(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
-    return @alignOf(std.sort.max(std.builtin.TypeInfo.StructField, fields, lessThanForStructFieldAlignment).?.field_type);
+    return @alignOf(std.sort.max(std.builtin.TypeInfo.StructField, fields, {}, lessThanForStructFieldAlignment).?.field_type);
 }
 
 fn minimumAlignment(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
-    return @alignOf(std.sort.min(std.builtin.TypeInfo.StructField, fields, lessThanForStructFieldAlignment).?.field_type);
+    return @alignOf(std.sort.min(std.builtin.TypeInfo.StructField, fields, {}, lessThanForStructFieldAlignment).?.field_type);
 }
 
-fn roundIntegerUp(i : usize, comptime r : usize) usize{
+fn roundIntegerUp(i: usize, comptime r: usize) usize {
     return ((i + r - 1) / r) * r;
 }
-
 
 pub fn StructureOfArrays(comptime Structure: type) type {
     return struct {
@@ -113,7 +112,7 @@ pub fn StructureOfArrays(comptime Structure: type) type {
             std.debug.assert(self.capacity() > self.len);
             const old_size = self.len;
             self.len = old_size + 1;
-            inline for(fields) |field| {
+            inline for (fields) |field| {
                 self.set(field.name, old_size, @field(values, field.name));
             }
         }
@@ -150,7 +149,7 @@ pub fn StructureOfArrays(comptime Structure: type) type {
             comptime const field_index = fieldIndex(field_name, fields);
             comptime const fields_size = totalSize(fields[0..field_index]);
             const start_offset = fields_size * self.capacity();
-            return std.mem.bytesAsSlice(FieldType, @alignCast(@alignOf(FieldType), self.storage[start_offset..start_offset + self.len * @sizeOf(FieldType)]));
+            return std.mem.bytesAsSlice(FieldType, @alignCast(@alignOf(FieldType), self.storage[start_offset .. start_offset + self.len * @sizeOf(FieldType)]));
         }
 
         pub fn at(self: Self, comptime field_name: []const u8, index: usize) findField(field_name, fields).field_type {
@@ -236,7 +235,7 @@ test "StructureOfArrays set capacity" {
 test "StructureOfArrays grow capacity increases the capacity" {
     var container = StructureOfArrays(TestStruct).init(testing.allocator);
     defer container.deinit();
-    for ([_]usize{1, 10, 1}) |val| {
+    for ([_]usize{ 1, 10, 1 }) |val| {
         const old_capacity = container.capacity();
         try container.growCapacity(val);
         testing.expect(container.capacity() >= old_capacity + val);
@@ -328,7 +327,7 @@ test "StructureOfArrays pop back" {
 
     container.popBack();
     testing.expectEqual(test_values.len - 1, container.size());
-    for (test_values[0..test_values.len - 1]) |val, i| {
+    for (test_values[0 .. test_values.len - 1]) |val, i| {
         testing.expectEqual(val.a, container.at("a", i));
         testing.expectEqual(val.b, container.at("b", i));
         testing.expectEqual(val.c, container.at("c", i));

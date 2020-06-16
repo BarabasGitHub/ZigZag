@@ -9,17 +9,21 @@ fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
 }
 
 pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Value: type) type {
-    return struct{
+    return struct {
         soa: SoAType,
-        const SoAType = StructureOfArrays(struct {node: Node, key: Key, value: Value,});
+        const SoAType = StructureOfArrays(struct {
+            node: Node,
+            key: Key,
+            value: Value,
+        });
 
         const Self = @This();
 
         pub fn init(allocator: *Allocator) Self {
-            return .{.soa=SoAType.init(allocator)};
+            return .{ .soa = SoAType.init(allocator) };
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: Self) void {
             self.soa.deinit();
         }
 
@@ -40,7 +44,7 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
         }
 
         pub fn append(self: *Self, node: Node, key: Key, value: Value) !void {
-            return self.soa.append(.{.node=node, .key=key, .value=value});
+            return self.soa.append(.{ .node = node, .key = key, .value = value });
         }
 
         pub fn growCapacity(self: *Self, amount: usize) !void {
