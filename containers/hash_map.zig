@@ -28,6 +28,61 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             }
         };
 
+        pub const KeyValueReference = struct {
+            key: *const Key,
+            value: *Value,
+        };
+
+        pub const Iterator = struct {
+            current_bucket: [*]const usize,
+            index: usize,
+            nextNodes: [*]const usize,
+            buckets_end: *const usize,
+            keys: [*]const Key,
+            values: [*]Value,
+
+            pub fn init(buckets: []const usize, nodes: []const usize, keys: []const Key, values: []Value) Iterator {
+                var it = Iterator{
+                    .current_bucket = buckets.ptr,
+                    .index = buckets[0],
+                    .nextNodes = nodes.ptr,
+                    .buckets_end = &buckets.ptr[buckets.len],
+                    .keys = keys.ptr,
+                    .values = values.ptr,
+                };
+                it.nextIndex();
+                return it;
+            }
+
+            pub fn next(self: *Iterator) ?KeyValueReference {
+                const current_index = self.index;
+                if (current_index == std.math.maxInt(usize)) {
+                    std.debug.assert(&self.current_bucket[0] == self.buckets_end);
+                    return null;
+                }
+                self.index = self.nextNodes[current_index];
+                self.nextIndex();
+                return KeyValueReference{ .key = &self.keys[current_index], .value = &self.values[current_index] };
+            }
+
+            fn incrementBucket(self: *Iterator) *const usize {
+                self.current_bucket += 1;
+                return &self.current_bucket[0];
+            }
+
+            fn nextIndex(self: *Iterator) void {
+                var next_index = self.index;
+                while (next_index == std.math.maxInt(usize) and self.incrementBucket() != self.buckets_end) {
+                    next_index = self.current_bucket[0];
+                }
+                self.index = next_index;
+            }
+        };
+
+        pub fn iterator(self: Self) Iterator {
+            return Iterator.init(self.buckets, self.node_key_value_storage.nodes(), self.node_key_value_storage.keys(), self.node_key_value_storage.values());
+        }
+
         pub fn init(allocator: *Allocator) !Self {
             var self = Self{
                 .buckets = try allocator.alloc(usize, 1),
@@ -317,4 +372,29 @@ test "remove from HashMap" {
     testing.expect(map.remove(1.5));
     testing.expect(map.remove(2.0));
     testing.expect(!map.remove(2.5));
+}
+
+test "iterate through HashMap" {
+    var map = try HashMap(f64, i128, test_hash, test_equals).init(testing.allocator);
+    defer map.deinit();
+
+    const keys = [_]f64{ 0.5, 1.5, 2.0 };
+    var seen = [_]bool{ false, false, false };
+
+    try map.insert(0.5, 123);
+    try map.insert(1.5, 234);
+    try map.insert(2.0, 345);
+
+    var it = map.iterator();
+    while (it.next()) |kv| {
+        for (keys) |key, i| {
+            if (kv.key.* == key) {
+                testing.expectEqual(false, seen[i]);
+                seen[i] = true;
+                break;
+            }
+        }
+        testing.expectEqual(map.get(kv.key.*).?.*, kv.value.*);
+    }
+    testing.expectEqual([_]bool{ true, true, true }, seen);
 }
