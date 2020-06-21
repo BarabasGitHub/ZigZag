@@ -7,21 +7,21 @@ fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
     return std.mem.alignForward(@ptrToInt(p), @alignOf(Type)) - @ptrToInt(p);
 }
 
-fn findField(comptime name: []const u8, fields: []std.builtin.TypeInfo.StructField) std.builtin.TypeInfo.StructField {
+fn findField(comptime name: []const u8, fields: []const std.builtin.TypeInfo.StructField) std.builtin.TypeInfo.StructField {
     for (fields) |field| {
         if (std.mem.eql(u8, field.name, name)) return field;
     }
     unreachable;
 }
 
-fn fieldIndex(comptime name: []const u8, fields: []std.builtin.TypeInfo.StructField) comptime_int {
+fn fieldIndex(comptime name: []const u8, fields: []const std.builtin.TypeInfo.StructField) comptime_int {
     for (fields) |field, i| {
         if (std.mem.eql(u8, field.name, name)) return i;
     }
     unreachable;
 }
 
-fn totalSize(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
+fn totalSize(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
     var size = 0;
     for (fields) |field| {
         size += @sizeOf(field.field_type);
@@ -29,7 +29,7 @@ fn totalSize(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
     return size;
 }
 
-fn sumOfAlignments(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
+fn sumOfAlignments(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
     var sum = 0;
     for (fields) |field| {
         sum += @alignOf(field.field_type);
@@ -41,11 +41,11 @@ fn lessThanForStructFieldAlignment(_: void, comptime a: std.builtin.TypeInfo.Str
     return @alignOf(a.field_type) < @alignOf(b.field_type);
 }
 
-fn maximumAlignment(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
+fn maximumAlignment(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
     return @alignOf(std.sort.max(std.builtin.TypeInfo.StructField, fields, {}, lessThanForStructFieldAlignment).?.field_type);
 }
 
-fn minimumAlignment(comptime fields: []std.builtin.TypeInfo.StructField) comptime_int {
+fn minimumAlignment(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
     return @alignOf(std.sort.min(std.builtin.TypeInfo.StructField, fields, {}, lessThanForStructFieldAlignment).?.field_type);
 }
 
