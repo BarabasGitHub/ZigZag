@@ -43,7 +43,7 @@ pub fn Pair() type {
 }
 
 // 3-way partition with two pivot points
-pub fn dualPivotPartition(comptime T: type, input_data: []T, pivot1: T, pivot2: T, context: var, less: fn (context: @TypeOf(context), a: T, b: T) bool) Pair() {
+pub fn dualPivotPartition(comptime T: type, input_data: []T, pivot1: T, pivot2: T, context: anytype, less: fn (context: @TypeOf(context), a: T, b: T) bool) Pair() {
     // less or equal
     testing.expect(!less(context, pivot2, pivot1));
     var begin: usize = 0;
@@ -93,12 +93,12 @@ pub fn dualPivotPartition(comptime T: type, input_data: []T, pivot1: T, pivot2: 
     return result;
 }
 
-pub fn partition3(comptime T: type, data: []T, pivot: T, context: var, less: fn (context: @TypeOf(context), a: T, b: T) bool) Pair() {
+pub fn partition3(comptime T: type, data: []T, pivot: T, context: anytype, less: fn (context: @TypeOf(context), a: T, b: T) bool) Pair() {
     // This is mostly faster than a separate implementation for this Partition3 functionality.
     return dualPivotPartition(T, data, pivot, pivot, context, less);
 }
 
-pub inline fn compareAndSwap(comptime T: type, a: *T, b: *T, context: var, less: fn (context: @TypeOf(context), a: T, b: T) bool) void {
+pub inline fn compareAndSwap(comptime T: type, a: *T, b: *T, context: anytype, less: fn (context: @TypeOf(context), a: T, b: T) bool) void {
     // assume(&a != &b);
     // auto a_t = Move(a);
     // auto b_t = Move(b);
@@ -110,13 +110,13 @@ pub inline fn compareAndSwap(comptime T: type, a: *T, b: *T, context: var, less:
     }
 }
 
-fn sort3(comptime T: type, a: *T, b: *T, c: *T, context: var, less: fn (context: @TypeOf(context), a: T, b: T) bool) void {
+fn sort3(comptime T: type, a: *T, b: *T, c: *T, context: anytype, less: fn (context: @TypeOf(context), a: T, b: T) bool) void {
     compareAndSwap(T, a, b, context, less);
     compareAndSwap(T, b, c, context, less);
     compareAndSwap(T, a, b, context, less);
 }
 
-fn median3(comptime T: type, a_in: *T, b_in: *T, c_in: *T, context: var, comptime less: fn (context: @TypeOf(context), a: T, b: T) bool) *T {
+fn median3(comptime T: type, a_in: *T, b_in: *T, c_in: *T, context: anytype, comptime less: fn (context: @TypeOf(context), a: T, b: T) bool) *T {
     var a = a_in;
     var b = b_in;
     var c = c_in;
@@ -130,7 +130,7 @@ fn median3(comptime T: type, a_in: *T, b_in: *T, c_in: *T, context: var, comptim
     return b;
 }
 
-pub fn partition3ByEstimatedMedian(comptime T: type, data: []T, context: var, comptime less: fn (context: @TypeOf(context), a: T, b: T) bool) Pair() {
+pub fn partition3ByEstimatedMedian(comptime T: type, data: []T, context: anytype, comptime less: fn (context: @TypeOf(context), a: T, b: T) bool) Pair() {
     var pivot = median3(T, &data[0], &data[data.len / 2], &data[data.len - 1], context, less);
     std.mem.swap(T, &data[data.len - 1], pivot);
     var current_partition_elements = partition3(T, data[0 .. data.len - 2], data[data.len - 1], context, less);
@@ -138,7 +138,7 @@ pub fn partition3ByEstimatedMedian(comptime T: type, data: []T, context: var, co
     return current_partition_elements;
 }
 
-pub fn nthElement(comptime T: type, data: []T, partition_point_in: usize, context: var, comptime less: fn (context: @TypeOf(context), a: T, b: T) bool) void {
+pub fn nthElement(comptime T: type, data: []T, partition_point_in: usize, context: anytype, comptime less: fn (context: @TypeOf(context), a: T, b: T) bool) void {
     var partition_point = partition_point_in;
     testing.expect(partition_point >= 0 and partition_point <= data.len);
     if (data.len == partition_point) return;

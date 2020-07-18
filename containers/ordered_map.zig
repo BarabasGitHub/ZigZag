@@ -464,7 +464,7 @@ test "OrderedMap Iterator" {
     const ordered_keys = [_]u32{ 1, 2, 3 };
     const ordered_values = [_]f64{ 3.5, 1.5, 2.5 };
     var iterator = container.iterator();
-    var i : u32 = 0;
+    var i: u32 = 0;
     while (iterator.next()) |next| : (i += 1) {
         testing.expectEqual(next.key(), ordered_keys[i]);
         testing.expectEqual(next.value(), ordered_values[i]);
@@ -514,7 +514,7 @@ test "OrderedMap insert remove many" {
     testing.expect(container.empty());
 }
 
-fn levelsOk(flatMap: var, node0: *@TypeOf(flatMap).Node) bool {
+fn levelsOk(flatMap: anytype, node0: *@TypeOf(flatMap).Node) bool {
     const level0 = node0.level;
     if (node0.right_child) |node1| {
         const level1 = node1.level;

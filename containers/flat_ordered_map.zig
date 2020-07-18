@@ -572,7 +572,7 @@ test "FlatOrderedMap insert remove many" {
     testing.expect(container.empty());
 }
 
-fn levelsOk(flatMap: var, index: u64) bool {
+fn levelsOk(flatMap: anytype, index: u64) bool {
     const headers = flatMap.storage.nodes();
     const header0 = headers[index];
     const level0 = header0.level;
