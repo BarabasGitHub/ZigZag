@@ -32,7 +32,6 @@ pub fn OrderedMap(comptime Key: type, comptime Value: type, comptime less: fn (a
                 return switch (i) {
                     0 => &self.left_child,
                     1 => &self.right_child,
-                    else => unreachable,
                 };
             }
             pub fn hasRightChild(self: Node) bool {

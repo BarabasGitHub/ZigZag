@@ -15,7 +15,6 @@ pub fn FlatOrderedMap(comptime Key: type, comptime Value: type, comptime less: f
                 return switch (i) {
                     0 => self.left(),
                     1 => self.right(),
-                    else => unreachable,
                 };
             }
             pub fn left(self: *Header) *u64 {

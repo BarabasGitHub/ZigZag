@@ -14,7 +14,7 @@ pub fn Data2D(comptime DataType: type) type {
 
         pub fn fromSlice(slice: []DataType, column_count: usize, row_count: usize) Self {
             assert(column_count * row_count == slice.len);
-            return Self {
+            return Self{
                 .data = slice.ptr,
                 .column_count = column_count,
                 .row_count = row_count,
@@ -22,9 +22,9 @@ pub fn Data2D(comptime DataType: type) type {
             };
         }
 
-        pub fn fromBytes(dataBlob: []align(@alignOf(DataType))u8, column_count: usize, row_count: usize) Self {
+        pub fn fromBytes(dataBlob: []align(@alignOf(DataType)) u8, column_count: usize, row_count: usize) Self {
             assert(column_count * row_count * @sizeOf(DataType) <= dataBlob.len);
-            return Self {
+            return Self{
                 .data = @ptrCast([*]DataType, dataBlob.ptr),
                 .column_count = column_count,
                 .row_count = row_count,
@@ -35,7 +35,7 @@ pub fn Data2D(comptime DataType: type) type {
         pub fn subRange(self: Self, column_offset: usize, row_offset: usize, column_count: usize, row_count: usize) Self {
             assert(self.row_count >= row_offset + row_count);
             assert(self.column_count >= column_offset + column_count);
-            return Self {
+            return Self{
                 .data = self.dataPointer(column_offset, row_offset),
                 .column_count = column_count,
                 .row_count = row_count,
@@ -89,7 +89,7 @@ pub fn Data2D(comptime DataType: type) type {
         };
 
         pub fn elementIterator(self: Self) ElementIterator {
-            return ElementIterator {
+            return ElementIterator{
                 .row_data = self.data,
                 .column = 0,
                 .column_count = self.column_count,
@@ -145,7 +145,7 @@ test "Data2D sub range" {
     var data: [40]f32 = undefined;
     var range = Data2D(f32).fromBytes(mem.sliceAsBytes(data[0..]), 6, 5);
     var subRange = range.subRange(2, 1, 3, 2);
-    testing.expectEqual(subRange.dataPointer(0,0), range.dataPointer(2, 1));
+    testing.expectEqual(subRange.dataPointer(0, 0), range.dataPointer(2, 1));
     testing.expectEqual(subRange.column_count, 3);
     testing.expectEqual(subRange.row_count, 2);
     testing.expectEqual(subRange.row_byte_pitch, range.row_byte_pitch);
@@ -158,5 +158,5 @@ test "Data2D get row" {
     for (range.getRow(2)) |*e, i| {
         e.* = @intToFloat(f32, i);
     }
-    testing.expectEqual(range.getRow(2), data[8 * 2..8 * 2 + 6]);
+    testing.expectEqual(range.getRow(2), data[8 * 2 .. 8 * 2 + 6]);
 }

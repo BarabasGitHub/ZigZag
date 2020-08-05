@@ -21,7 +21,7 @@ pub fn BatchedFloat2(comptime BatchSize: usize) type {
         }
 
         pub fn arrayInit(a: [BatchSize]f32) Self {
-            return Self {
+            return Self{
                 .x = a,
                 .y = a,
             };

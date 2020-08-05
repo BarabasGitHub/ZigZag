@@ -5,7 +5,7 @@ const builtin = @import("builtin");
 // This is not really statistics related, but ehh... we need it and I don't know where else to put it for now
 fn dotProduct(comptime T: type, a: []const T, b: []const T) T {
     testing.expectEqual(a.len, b.len);
-    var s : T = 0;
+    var s: T = 0;
     for (a) |e, i| {
         s += e * b[i];
     }
@@ -13,7 +13,7 @@ fn dotProduct(comptime T: type, a: []const T, b: []const T) T {
 }
 
 pub fn sum(comptime Type: type, input: []const Type) Type {
-    var s : Type = 0;
+    var s: Type = 0;
     for (input) |i| {
         s += i;
     }

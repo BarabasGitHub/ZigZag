@@ -29,7 +29,6 @@ pub fn Vector2d(comptime T: type) type {
             return switch (i) {
                 0 => self.x,
                 1 => self.y,
-                else => unreachable,
             };
         }
 
@@ -37,7 +36,6 @@ pub fn Vector2d(comptime T: type) type {
             const e = switch (i) {
                 0 => &self.x,
                 1 => &self.y,
-                else => unreachable,
             };
             e.* = v;
         }

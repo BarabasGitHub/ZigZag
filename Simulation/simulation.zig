@@ -14,7 +14,7 @@ const Force3D = Float3;
 const PointData = struct {
     const Self = @This();
 
-    const DataContainerType = StructureOfArrays(struct{position: Position3D, velocity: Velocity3D, force: Force3D});
+    const DataContainerType = StructureOfArrays(struct { position: Position3D, velocity: Velocity3D, force: Force3D });
     data: DataContainerType,
 
     fn init(allocator: *Allocator) Self {
@@ -27,16 +27,16 @@ const PointData = struct {
         self.data.deinit();
     }
 
-    fn addPoints(self: *Self, points : []const Position3D) !void {
+    fn addPoints(self: *Self, points: []const Position3D) !void {
         try self.data.ensureCapacity(self.data.len + points.len);
         for (points) |point| {
-            self.data.appendAssumeCapacity(.{.position=point, .velocity=Velocity3D.initZero(), .force=Force3D.initZero()});
+            self.data.appendAssumeCapacity(.{ .position = point, .velocity = Velocity3D.initZero(), .force = Force3D.initZero() });
         }
     }
 };
 
 test "PointData adding points results in the points being accessible and having velocity and force of zero" {
-    const points = [_]Position3D{.{.x=0, .y=0, .z=10}, .{.x=5, .y=5, .z=5}, .{.x=-5, .y=0, .z=5}};
+    const points = [_]Position3D{ .{ .x = 0, .y = 0, .z = 10 }, .{ .x = 5, .y = 5, .z = 5 }, .{ .x = -5, .y = 0, .z = 5 } };
     var point_data = PointData.init(testing.allocator);
     defer point_data.deinit();
     try point_data.addPoints(&points);
@@ -54,17 +54,17 @@ test "PointData adding points results in the points being accessible and having 
 const Simulation = struct {
     const Self = @This();
 
-    heighmap : Data2D(f32),
-    point_data : PointData,
-    gravity : Force3D,
-    time_step : f32,
+    heighmap: Data2D(f32),
+    point_data: PointData,
+    gravity: Force3D,
+    time_step: f32,
 
     fn init(allocator: *Allocator, heighmap: Data2D(f32)) Simulation {
         return .{
-            .heighmap=heighmap,
-            .point_data=PointData.init(allocator),
-            .gravity=.{.x=0, .y=0, .z=-9.81},
-            .time_step=1e-3,
+            .heighmap = heighmap,
+            .point_data = PointData.init(allocator),
+            .gravity = .{ .x = 0, .y = 0, .z = -9.81 },
+            .time_step = 1e-3,
         };
     }
 
@@ -80,15 +80,15 @@ const Simulation = struct {
 };
 
 test "points drop and stay on flat land" {
-    const points = [_]Position3D{.{.x=0, .y=0, .z=10}, .{.x=5, .y=5, .z=5}, .{.x=-5, .y=-5, .z=5}};
-    var heights = [_]f32{1,2,3,4};
+    const points = [_]Position3D{ .{ .x = 0, .y = 0, .z = 10 }, .{ .x = 5, .y = 5, .z = 5 }, .{ .x = -5, .y = -5, .z = 5 } };
+    var heights = [_]f32{ 1, 2, 3, 4 };
     var simulation = Simulation.init(testing.allocator, Data2D(f32).fromSlice(&heights, 2, 2));
     defer simulation.deinit();
     try simulation.point_data.addPoints(&points);
 
     simulation.iterate();
 
-    testing.expectEqual(Position3D{.x=0, .y=0, .z=0}, simulation.point_data.data.at("position", 0));
-    testing.expectEqual(Position3D{.x=5, .y=5, .z=0}, simulation.point_data.data.at("position", 1));
-    testing.expectEqual(Position3D{.x=-5, .y=-5, .z=0}, simulation.point_data.data.at("position", 2));
+    testing.expectEqual(Position3D{ .x = 0, .y = 0, .z = 0 }, simulation.point_data.data.at("position", 0));
+    testing.expectEqual(Position3D{ .x = 5, .y = 5, .z = 0 }, simulation.point_data.data.at("position", 1));
+    testing.expectEqual(Position3D{ .x = -5, .y = -5, .z = 0 }, simulation.point_data.data.at("position", 2));
 }

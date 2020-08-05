@@ -78,7 +78,7 @@ fn getHashValue(comptime BatchSize: usize, f: BatchedFloat2(BatchSize), seed: us
     var i: u32 = 0;
     // TODO: unroll the loop. Currently Zig doesn't compile when inlining a loop with a @call
     while (i < BatchSize) : (i += 1) {
-        r[i] = @truncate(u32, @call(.{.modifier=.always_inline}, hf.bytestreamHash, .{std.mem.sliceAsBytes(abcd[i * 2 .. (i + 1) * 2]), seed}));
+        r[i] = @truncate(u32, @call(.{ .modifier = .always_inline }, hf.bytestreamHash, .{ std.mem.sliceAsBytes(abcd[i * 2 .. (i + 1) * 2]), seed }));
     }
     return r;
 }

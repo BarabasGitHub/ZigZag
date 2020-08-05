@@ -97,7 +97,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
         }
 
         pub fn removeZeroEntries(self: *Self) void {
-            var removedCount : u32 = 0;
+            var removedCount: u32 = 0;
             for (self.row_offsets.span()[1..]) |end, i| {
                 const start = self.row_offsets.items[i];
                 self.row_offsets.items[i] = start - removedCount;
@@ -138,7 +138,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
             // set the row offsets to point at the first element of the all elements for each row
             // note: we also displace all offsets, such that they are all at their final position
             {
-                var total_offset : u32 = 0;
+                var total_offset: u32 = 0;
                 for (column_counts) |*offset| {
                     const t = offset.*;
                     offset.* = total_offset;
@@ -148,7 +148,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
 
             // copy the values and assign the right column indices, meanwhile keeping track of where to add the new elements
             // in the row offsets
-            var old_row : u32 = 0;
+            var old_row: u32 = 0;
             while (old_row < row_count) : (old_row += 1) {
                 const values = self.valuesInRow(old_row);
                 for (self.columnsInRow(old_row)) |column, i| {
@@ -187,7 +187,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
             std.mem.set(u32, used, 0);
 
             const row_count_a = a.numberOfRows();
-            var row_a : u32 = 0;
+            var row_a: u32 = 0;
             while (row_a < row_count_a) : (row_a += 1) {
                 const row_c = row_a;
                 c.row_offsets.items[row_c] = @intCast(u32, c.column_indices.items.len);
@@ -244,7 +244,7 @@ pub fn SparseMatrix(comptime DataType: type) type {
 
             for (y) |*element_y, i| {
                 const row = @intCast(u32, i);
-                var value : DataType = 0;
+                var value: DataType = 0;
                 const values = self.valuesInRow(row);
                 const column_indices = self.columnsInRow(row);
                 for (column_indices) |column, index| {
@@ -318,7 +318,7 @@ test "SparseMatrix columnsInRow and valuesInRow" {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
-    var offset : u32 = 0;
+    var offset: u32 = 0;
     for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
@@ -377,7 +377,7 @@ test "SparseMatrix get element" {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
-    var offset : u32 = 0;
+    var offset: u32 = 0;
     for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
@@ -424,7 +424,7 @@ test "SparseMatrix remove zero entries" {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
-    var offset : u32 = 0;
+    var offset: u32 = 0;
     for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);
@@ -446,7 +446,7 @@ test "SparseMatrix transpose" {
         c.* = (@intCast(u32, i) * 3) % 10;
     }
 
-    var offset : u32 = 0;
+    var offset: u32 = 0;
     for (matrix.row_offsets.span()) |*o| {
         o.* = offset;
         offset = std.math.min(offset + 3, 14);

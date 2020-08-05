@@ -43,7 +43,7 @@ pub fn SingleLinkedList(comptime Value: type) type {
         }
 
         pub fn count(self: Self) usize {
-            var i : usize = 0;
+            var i: usize = 0;
             var node = self.head;
             while (node) |n| {
                 node = n.next;
@@ -168,7 +168,7 @@ test "SingleLinkedList iterate" {
     try container.prepend(1);
 
     var iter = container.iterator();
-    var expected : u32 = 1;
+    var expected: u32 = 1;
     while (iter.next()) |value| {
         testing.expectEqual(value.*, expected);
         expected += 1;
@@ -231,7 +231,7 @@ test "SingleLinkedList splitAfter" {
     var container2 = container.splitAfter(iter.node.?);
     defer container2.deinit();
     iter = container.iterator();
-    var expected : u32 = 0;
+    var expected: u32 = 0;
     while (iter.next()) |value| {
         testing.expectEqual(value.*, expected);
         expected += 1;
