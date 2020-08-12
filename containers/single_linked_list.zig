@@ -86,7 +86,8 @@ pub fn SingleLinkedList(comptime Value: type) type {
 
         pub fn clear(self: *Self) void {
             var node = self.head;
-            while (node) |n| : (node = n.next) {
+            while (node) |n| {
+                node = n.next;
                 self.allocator.destroy(n);
             }
             self.head = null;
