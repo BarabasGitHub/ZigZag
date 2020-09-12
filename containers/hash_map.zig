@@ -7,20 +7,45 @@ const Allocator = std.mem.Allocator;
 
 pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function: fn (key: Key) usize, comptime equal_function: fn (a: Key, b: Key) bool) type {
     return struct {
-        buckets: []usize,
-        empty_node: usize,
-        node_key_value_storage: nkv.NodeKeyValueStorage(usize, Key, Value),
+        const Node = struct {
+            empty: bool,
+            next: Index,
+
+            const end_marker = std.math.maxInt(Index);
+
+            pub fn initEnd(is_empty: bool) Node {
+                return .{ .empty = is_empty, .next = end_marker };
+            }
+
+            pub fn isEnd(self: Node) bool {
+                return self.next == end_marker;
+            }
+
+            pub fn isEmpty(self: Node) bool {
+                return self.empty;
+            }
+
+            pub fn setFilled(self: *Node) void {
+                self.empty = false;
+            }
+        };
+
+        const Index = u63;
+
+        buckets: []Node,
+        empty_node: Node,
+        node_key_value_storage: nkv.NodeKeyValueStorage(Node, Key, Value),
         const Self = @This();
 
         pub const KeyBucketIterator = struct {
-            index: usize,
-            nextNodes: []usize,
+            current_node: Node,
+            next_nodes: []Node,
             keys: []Key,
 
             pub fn next(self: *KeyBucketIterator) ?*Key {
-                if (self.index != std.math.maxInt(usize)) {
-                    const key = &self.keys[self.index];
-                    self.index = self.nextNodes[self.index];
+                if (!self.current_node.isEnd()) {
+                    const key = &self.keys[self.current_node.next];
+                    self.current_node = self.next_nodes[self.current_node.next];
                     return key;
                 } else {
                     return null;
@@ -34,18 +59,18 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         };
 
         pub const Iterator = struct {
-            current_bucket: [*]const usize,
-            index: usize,
-            nextNodes: [*]const usize,
-            buckets_end: *const usize,
+            current_bucket: [*]const Node,
+            index: Node,
+            next_nodes: [*]const Node,
+            buckets_end: *const Node,
             keys: [*]const Key,
             values: [*]Value,
 
-            pub fn init(buckets: []const usize, nodes: []const usize, keys: []const Key, values: []Value) Iterator {
+            pub fn init(buckets: []const Node, nodes: []const Node, keys: []const Key, values: []Value) Iterator {
                 var it = Iterator{
                     .current_bucket = buckets.ptr,
                     .index = buckets[0],
-                    .nextNodes = nodes.ptr,
+                    .next_nodes = nodes.ptr,
                     .buckets_end = &buckets.ptr[buckets.len],
                     .keys = keys.ptr,
                     .values = values.ptr,
@@ -56,23 +81,23 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
 
             pub fn next(self: *Iterator) ?KeyValueReference {
                 const current_index = self.index;
-                if (current_index == std.math.maxInt(usize)) {
+                if (current_index.isEnd()) {
                     std.debug.assert(&self.current_bucket[0] == self.buckets_end);
                     return null;
                 }
-                self.index = self.nextNodes[current_index];
+                self.index = self.next_nodes[current_index.next];
                 self.nextIndex();
-                return KeyValueReference{ .key = &self.keys[current_index], .value = &self.values[current_index] };
+                return KeyValueReference{ .key = &self.keys[current_index.next], .value = &self.values[current_index.next] };
             }
 
-            fn incrementBucket(self: *Iterator) *const usize {
+            fn incrementBucket(self: *Iterator) *const Node {
                 self.current_bucket += 1;
                 return &self.current_bucket[0];
             }
 
             fn nextIndex(self: *Iterator) void {
                 var next_index = self.index;
-                while (next_index == std.math.maxInt(usize) and self.incrementBucket() != self.buckets_end) {
+                while (next_index.isEnd() and self.incrementBucket() != self.buckets_end) {
                     next_index = self.current_bucket[0];
                 }
                 self.index = next_index;
@@ -85,11 +110,11 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
 
         pub fn init(allocator: *Allocator) !Self {
             var self = Self{
-                .buckets = try allocator.alloc(usize, 1),
-                .empty_node = std.math.maxInt(usize),
-                .node_key_value_storage = nkv.NodeKeyValueStorage(usize, Key, Value).init(allocator),
+                .buckets = try allocator.alloc(Node, 1),
+                .empty_node = Node.initEnd(true),
+                .node_key_value_storage = nkv.NodeKeyValueStorage(Node, Key, Value).init(allocator),
             };
-            self.buckets[0] = std.math.maxInt(usize);
+            self.buckets[0] = Node.initEnd(false);
             return self;
         }
 
@@ -99,8 +124,8 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         }
 
         pub fn clear(self: *Self) void {
-            std.mem.set(usize, self.buckets, std.math.maxInt(usize));
-            self.empty_node = std.math.maxInt(usize);
+            std.mem.set(Node, self.buckets, Node.initEnd(false));
+            self.empty_node = Node.initEnd(true);
             self.node_key_value_storage.clear();
         }
 
@@ -117,8 +142,8 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             var i = self.empty_node;
             var count: usize = 0;
             const next = self.node_key_value_storage.nodes();
-            while (i != std.math.maxInt(usize)) {
-                i = next[i];
+            while (!i.isEnd()) {
+                i = next[i.next];
                 count += 1;
             }
             return count;
@@ -146,25 +171,16 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
 
         pub fn setBucketCount(self: *Self, count: usize) !void {
             self.node_key_value_storage.soa.allocator.free(self.buckets);
-            self.buckets = try self.node_key_value_storage.soa.allocator.alloc(usize, count);
-            std.mem.set(usize, self.buckets, std.math.maxInt(usize));
+            self.buckets = try self.node_key_value_storage.soa.allocator.alloc(Node, count);
+            std.mem.set(Node, self.buckets, Node.initEnd(false));
             var next = self.node_key_value_storage.nodes();
-            // first mark the emtpy nodes
-            {
-                var i = self.empty_node;
-                while (i != std.math.maxInt(usize)) {
-                    const j = next[i];
-                    next[i] = std.math.maxInt(usize) - 1;
-                    i = j;
-                }
-            }
-            self.empty_node = std.math.maxInt(usize);
+            self.empty_node = Node.initEnd(true);
             const keys = self.node_key_value_storage.keys();
-            var i: usize = 0;
+            var i: u63 = 0;
             const size = self.node_key_value_storage.size();
             while (i < size) : (i += 1) {
-                var index: *usize = undefined;
-                if (next[i] == std.math.maxInt(usize) - 1) {
+                var index: *Node = undefined;
+                if (next[i].isEmpty()) {
                     // update empty list
                     index = &self.empty_node;
                 } else {
@@ -173,7 +189,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
                     index = &self.buckets[bucket_index];
                 }
                 const j = index.*;
-                index.* = i;
+                index.* = .{ .empty = false, .next = i };
                 next[i] = j;
             }
         }
@@ -191,21 +207,22 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             var keys = self.node_key_value_storage.keys();
             var next = self.node_key_value_storage.nodes();
             var i = previous_next.*;
-            while (i != std.math.maxInt(usize) and !equal_function(keys[i], key)) {
-                previous_next = &next[i];
+            while (!i.isEnd() and !equal_function(keys[i.next], key)) {
+                previous_next = &next[i.next];
                 i = previous_next.*;
-            } else if (i == std.math.maxInt(usize)) {
-                if (self.empty_node == std.math.maxInt(usize)) {
+            } else if (i.isEnd()) {
+                if (self.empty_node.isEnd()) {
                     const index = self.node_key_value_storage.size();
-                    previous_next.* = index;
-                    try self.node_key_value_storage.append(std.math.maxInt(usize), key, value);
+                    previous_next.* = .{ .empty = false, .next = @intCast(u63, index) };
+                    try self.node_key_value_storage.append(Node.initEnd(false), key, value);
                 } else {
-                    const index = self.empty_node;
-                    self.empty_node = next[index];
-                    next[index] = i;
+                    var index = self.empty_node;
+                    index.setFilled();
+                    self.empty_node = next[index.next];
+                    next[index.next] = i;
                     previous_next.* = index;
-                    keys[index] = key;
-                    self.node_key_value_storage.values()[index] = value;
+                    keys[index.next] = key;
+                    self.node_key_value_storage.values()[index.next] = value;
                 }
             } else {
                 return error.KeyAlreadyExists;
@@ -231,37 +248,37 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
                 var previous = &self.buckets[bucket_index];
                 var i = previous.*;
                 const next = self.node_key_value_storage.nodes();
-                while (i != index) {
-                    previous = &next[i];
+                while (i.next != index) {
+                    previous = &next[i.next];
                     i = previous.*;
                 }
                 previous.* = next[index];
                 next[index] = self.empty_node;
-                self.empty_node = index;
+                self.empty_node = .{ .empty = true, .next = index };
                 return true;
             } else {
                 return false;
             }
         }
 
-        fn keyIndex(self: Self, key_in: Key) ?usize {
+        fn keyIndex(self: Self, key_in: Key) ?Index {
             const bucket_index = self.bucketIndex(key_in);
             return self.keyIndexFromBucketIndex(key_in, bucket_index);
         }
 
-        fn keyIndexFromBucketIndex(self: Self, key_in: Key, bucket_index: usize) ?usize {
+        fn keyIndexFromBucketIndex(self: Self, key_in: Key, bucket_index: usize) ?u63 {
             var bucket_keys = self.bucketKeys(bucket_index);
-            var index = bucket_keys.index;
-            while (bucket_keys.next()) |key| : (index = bucket_keys.index) {
-                if (equal_function(key.*, key_in)) return index;
+            var index = bucket_keys.current_node;
+            while (bucket_keys.next()) |key| : (index = bucket_keys.current_node) {
+                if (equal_function(key.*, key_in)) return index.next;
             }
             return null;
         }
 
         fn bucketKeys(self: Self, index: usize) KeyBucketIterator {
             return KeyBucketIterator{
-                .index = self.buckets[index],
-                .nextNodes = self.node_key_value_storage.nodes(),
+                .current_node = self.buckets[index],
+                .next_nodes = self.node_key_value_storage.nodes(),
                 .keys = self.node_key_value_storage.keys(),
             };
         }
