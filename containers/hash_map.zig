@@ -7,26 +7,30 @@ const Allocator = std.mem.Allocator;
 
 pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function: fn (key: Key) usize, comptime equal_function: fn (a: Key, b: Key) bool) type {
     return struct {
-        const Node = struct {
-            empty: bool,
-            next: Index,
+        const NodeType = packed enum(u1) { Empty, Used };
+        const Node = packed struct {
+            node_type: NodeType,
+            index: Index,
 
             const end_marker = std.math.maxInt(Index);
 
-            pub fn initEnd(is_empty: bool) Node {
-                return .{ .empty = is_empty, .next = end_marker };
+            pub fn initEnd(node_type: NodeType) Node {
+                return .{ .node_type = node_type, .index = end_marker };
             }
 
             pub fn isEnd(self: Node) bool {
-                return self.next == end_marker;
+                return self.index == end_marker;
             }
 
             pub fn isEmpty(self: Node) bool {
-                return self.empty;
+                return switch (self.node_type) {
+                    .Empty => true,
+                    .Used => false,
+                };
             }
 
             pub fn setFilled(self: *Node) void {
-                self.empty = false;
+                self.node_type = .Used;
             }
         };
 
@@ -44,8 +48,8 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
 
             pub fn next(self: *KeyBucketIterator) ?*Key {
                 if (!self.current_node.isEnd()) {
-                    const key = &self.keys[self.current_node.next];
-                    self.current_node = self.next_nodes[self.current_node.next];
+                    const key = &self.keys[self.current_node.index];
+                    self.current_node = self.next_nodes[self.current_node.index];
                     return key;
                 } else {
                     return null;
@@ -59,62 +63,54 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         };
 
         pub const Iterator = struct {
-            current_bucket: [*]const Node,
-            index: Node,
+            index: Index,
+            index_end: Index,
             next_nodes: [*]const Node,
-            buckets_end: *const Node,
             keys: [*]const Key,
             values: [*]Value,
 
-            pub fn init(buckets: []const Node, nodes: []const Node, keys: []const Key, values: []Value) Iterator {
+            pub fn init(nodes: []const Node, keys: []const Key, values: []Value) Iterator {
+                std.debug.assert(nodes.len == keys.len);
+                std.debug.assert(nodes.len == values.len);
                 var it = Iterator{
-                    .current_bucket = buckets.ptr,
-                    .index = buckets[0],
+                    .index = 0,
+                    .index_end = @intCast(Index, nodes.len),
                     .next_nodes = nodes.ptr,
-                    .buckets_end = &buckets.ptr[buckets.len],
                     .keys = keys.ptr,
                     .values = values.ptr,
                 };
-                it.nextIndex();
+                it.nextNonEmptyIndex();
                 return it;
             }
 
             pub fn next(self: *Iterator) ?KeyValueReference {
                 const current_index = self.index;
-                if (current_index.isEnd()) {
-                    std.debug.assert(&self.current_bucket[0] == self.buckets_end);
-                    return null;
-                }
-                self.index = self.next_nodes[current_index.next];
-                self.nextIndex();
-                return KeyValueReference{ .key = &self.keys[current_index.next], .value = &self.values[current_index.next] };
+                if (current_index == self.index_end) return null;
+                self.index += 1;
+                self.nextNonEmptyIndex();
+                return KeyValueReference{ .key = &self.keys[current_index], .value = &self.values[current_index] };
             }
 
-            fn incrementBucket(self: *Iterator) *const Node {
-                self.current_bucket += 1;
-                return &self.current_bucket[0];
-            }
-
-            fn nextIndex(self: *Iterator) void {
+            fn nextNonEmptyIndex(self: *Iterator) void {
                 var next_index = self.index;
-                while (next_index.isEnd() and self.incrementBucket() != self.buckets_end) {
-                    next_index = self.current_bucket[0];
+                while (self.next_nodes[next_index].isEmpty() and next_index != self.index_end) {
+                    next_index += 1;
                 }
                 self.index = next_index;
             }
         };
 
         pub fn iterator(self: Self) Iterator {
-            return Iterator.init(self.buckets, self.node_key_value_storage.nodes(), self.node_key_value_storage.keys(), self.node_key_value_storage.values());
+            return Iterator.init(self.node_key_value_storage.nodes(), self.node_key_value_storage.keys(), self.node_key_value_storage.values());
         }
 
         pub fn init(allocator: *Allocator) !Self {
             var self = Self{
                 .buckets = try allocator.alloc(Node, 1),
-                .empty_node = Node.initEnd(true),
+                .empty_node = Node.initEnd(.Empty),
                 .node_key_value_storage = nkv.NodeKeyValueStorage(Node, Key, Value).init(allocator),
             };
-            self.buckets[0] = Node.initEnd(false);
+            self.buckets[0] = Node.initEnd(.Used);
             return self;
         }
 
@@ -124,8 +120,8 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         }
 
         pub fn clear(self: *Self) void {
-            std.mem.set(Node, self.buckets, Node.initEnd(false));
-            self.empty_node = Node.initEnd(true);
+            std.mem.set(Node, self.buckets, Node.initEnd(.Used));
+            self.empty_node = Node.initEnd(.Empty);
             self.node_key_value_storage.clear();
         }
 
@@ -143,7 +139,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             var count: usize = 0;
             const next = self.node_key_value_storage.nodes();
             while (!i.isEnd()) {
-                i = next[i.next];
+                i = next[i.index];
                 count += 1;
             }
             return count;
@@ -172,11 +168,11 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
         pub fn setBucketCount(self: *Self, count: usize) !void {
             self.node_key_value_storage.soa.allocator.free(self.buckets);
             self.buckets = try self.node_key_value_storage.soa.allocator.alloc(Node, count);
-            std.mem.set(Node, self.buckets, Node.initEnd(false));
+            std.mem.set(Node, self.buckets, Node.initEnd(.Used));
             var next = self.node_key_value_storage.nodes();
-            self.empty_node = Node.initEnd(true);
+            self.empty_node = Node.initEnd(.Empty);
             const keys = self.node_key_value_storage.keys();
-            var i: u63 = 0;
+            var i: Index = 0;
             const size = self.node_key_value_storage.size();
             while (i < size) : (i += 1) {
                 var index: *Node = undefined;
@@ -189,7 +185,7 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
                     index = &self.buckets[bucket_index];
                 }
                 const j = index.*;
-                index.* = .{ .empty = false, .next = i };
+                index.* = .{ .node_type = .Empty, .index = i };
                 next[i] = j;
             }
         }
@@ -207,22 +203,22 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             var keys = self.node_key_value_storage.keys();
             var next = self.node_key_value_storage.nodes();
             var i = previous_next.*;
-            while (!i.isEnd() and !equal_function(keys[i.next], key)) {
-                previous_next = &next[i.next];
+            while (!i.isEnd() and !equal_function(keys[i.index], key)) {
+                previous_next = &next[i.index];
                 i = previous_next.*;
             } else if (i.isEnd()) {
                 if (self.empty_node.isEnd()) {
                     const index = self.node_key_value_storage.size();
-                    previous_next.* = .{ .empty = false, .next = @intCast(u63, index) };
-                    try self.node_key_value_storage.append(Node.initEnd(false), key, value);
+                    previous_next.* = .{ .node_type = .Used, .index = @intCast(Index, index) };
+                    try self.node_key_value_storage.append(Node.initEnd(.Used), key, value);
                 } else {
                     var index = self.empty_node;
                     index.setFilled();
-                    self.empty_node = next[index.next];
-                    next[index.next] = i;
+                    self.empty_node = next[index.index];
+                    next[index.index] = i;
                     previous_next.* = index;
-                    keys[index.next] = key;
-                    self.node_key_value_storage.values()[index.next] = value;
+                    keys[index.index] = key;
+                    self.node_key_value_storage.values()[index.index] = value;
                 }
             } else {
                 return error.KeyAlreadyExists;
@@ -248,13 +244,13 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
                 var previous = &self.buckets[bucket_index];
                 var i = previous.*;
                 const next = self.node_key_value_storage.nodes();
-                while (i.next != index) {
-                    previous = &next[i.next];
+                while (i.index != index) {
+                    previous = &next[i.index];
                     i = previous.*;
                 }
                 previous.* = next[index];
                 next[index] = self.empty_node;
-                self.empty_node = .{ .empty = true, .next = index };
+                self.empty_node = .{ .node_type = .Empty, .index = index };
                 return true;
             } else {
                 return false;
@@ -266,11 +262,11 @@ pub fn HashMap(comptime Key: type, comptime Value: type, comptime hash_function:
             return self.keyIndexFromBucketIndex(key_in, bucket_index);
         }
 
-        fn keyIndexFromBucketIndex(self: Self, key_in: Key, bucket_index: usize) ?u63 {
+        fn keyIndexFromBucketIndex(self: Self, key_in: Key, bucket_index: usize) ?Index {
             var bucket_keys = self.bucketKeys(bucket_index);
             var index = bucket_keys.current_node;
             while (bucket_keys.next()) |key| : (index = bucket_keys.current_node) {
-                if (equal_function(key.*, key_in)) return index.next;
+                if (equal_function(key.*, key_in)) return index.index;
             }
             return null;
         }
@@ -333,9 +329,10 @@ test "set and grow HashMap capacity" {
     try map.growCapacity();
     testing.expect(map.capacity() > 0);
     try map.setCapacity(10);
-    testing.expectEqual(map.capacity(), 10);
+    testing.expect(map.capacity() >= 10);
+    const old_capacity = map.capacity();
     try map.growCapacity();
-    testing.expect(map.capacity() > 10);
+    testing.expect(map.capacity() > old_capacity);
 }
 
 test "insert and clear in HashMap" {
@@ -399,8 +396,15 @@ test "iterate through HashMap" {
     var seen = [_]bool{ false, false, false };
 
     try map.insert(0.5, 123);
+    try map.insert(1.0, 0);
     try map.insert(1.5, 234);
+    try map.insert(1.7, 0);
     try map.insert(2.0, 345);
+    try map.insert(3.0, 0);
+
+    _ = map.remove(1.0);
+    _ = map.remove(1.7);
+    _ = map.remove(3.0);
 
     var it = map.iterator();
     while (it.next()) |kv| {
@@ -411,7 +415,7 @@ test "iterate through HashMap" {
                 break;
             }
         }
-        testing.expectEqual(map.get(kv.key.*).?.*, kv.value.*);
+        testing.expectEqual(map.get(kv.key.*).?, kv.value);
     }
     testing.expectEqual([_]bool{ true, true, true }, seen);
 }
