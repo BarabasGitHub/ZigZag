@@ -47,6 +47,10 @@ pub fn NodeKeyValueStorage(comptime Node: type, comptime Key: type, comptime Val
             return self.soa.append(.{ .node = node, .key = key, .value = value });
         }
 
+        pub fn appendAssumeCapacity(self: *Self, node: Node, key: Key, value: Value) void {
+            return self.soa.appendAssumeCapacity(.{ .node = node, .key = key, .value = value });
+        }
+
         pub fn growCapacity(self: *Self, amount: usize) !void {
             return self.soa.growCapacity(amount);
         }

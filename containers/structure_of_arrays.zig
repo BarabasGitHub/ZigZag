@@ -7,21 +7,18 @@ fn alignPointerOffset(comptime Type: type, p: [*]u8) usize {
     return std.mem.alignForward(@ptrToInt(p), @alignOf(Type)) - @ptrToInt(p);
 }
 
-fn findField(comptime name: []const u8, fields: []const std.builtin.TypeInfo.StructField) std.builtin.TypeInfo.StructField {
-    for (fields) |field| {
-        if (std.mem.eql(u8, field.name, name)) return field;
-    }
-    unreachable;
+fn fieldType(comptime fields: []const StructureOfArraysDescription.FieldDescription, comptime name: []const u8) type {
+    return fields[fieldIndex(fields, name)].field_type;
 }
 
-fn fieldIndex(comptime name: []const u8, fields: []const std.builtin.TypeInfo.StructField) comptime_int {
+fn fieldIndex(comptime fields: []const StructureOfArraysDescription.FieldDescription, comptime name: []const u8) comptime_int {
     for (fields) |field, i| {
         if (std.mem.eql(u8, field.name, name)) return i;
     }
-    unreachable;
+    @compileError("Has no field '" ++ name ++ "'");
 }
 
-fn totalSize(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
+fn totalSize(comptime fields: []const StructureOfArraysDescription.FieldDescription) comptime_int {
     var size = 0;
     for (fields) |field| {
         size += @sizeOf(field.field_type);
@@ -29,7 +26,7 @@ fn totalSize(comptime fields: []const std.builtin.TypeInfo.StructField) comptime
     return size;
 }
 
-fn sumOfAlignments(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
+fn sumOfAlignments(comptime fields: []const StructureOfArraysDescription.FieldDescription) comptime_int {
     var sum = 0;
     for (fields) |field| {
         sum += @alignOf(field.field_type);
@@ -37,16 +34,16 @@ fn sumOfAlignments(comptime fields: []const std.builtin.TypeInfo.StructField) co
     return sum;
 }
 
-fn lessThanForStructFieldAlignment(_: void, comptime a: std.builtin.TypeInfo.StructField, comptime b: std.builtin.TypeInfo.StructField) bool {
+fn lessThanForStructFieldAlignment(_: void, comptime a: StructureOfArraysDescription.FieldDescription, comptime b: StructureOfArraysDescription.FieldDescription) bool {
     return @alignOf(a.field_type) < @alignOf(b.field_type);
 }
 
-fn maximumAlignment(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
-    return @alignOf(std.sort.max(std.builtin.TypeInfo.StructField, fields, {}, lessThanForStructFieldAlignment).?.field_type);
+fn maximumAlignment(comptime fields: []const StructureOfArraysDescription.FieldDescription) comptime_int {
+    return @alignOf(std.sort.max(StructureOfArraysDescription.FieldDescription, fields, {}, lessThanForStructFieldAlignment).?.field_type);
 }
 
-fn minimumAlignment(comptime fields: []const std.builtin.TypeInfo.StructField) comptime_int {
-    return @alignOf(std.sort.min(std.builtin.TypeInfo.StructField, fields, {}, lessThanForStructFieldAlignment).?.field_type);
+fn minimumAlignment(comptime fields: []const StructureOfArraysDescription.FieldDescription) comptime_int {
+    return @alignOf(std.sort.min(StructureOfArraysDescription.FieldDescription, fields, {}, lessThanForStructFieldAlignment).?.field_type);
 }
 
 fn roundIntegerUp(i: usize, comptime r: usize) usize {
@@ -54,8 +51,29 @@ fn roundIntegerUp(i: usize, comptime r: usize) usize {
 }
 
 pub fn StructureOfArrays(comptime Structure: type) type {
+    var descriptions: [std.meta.fields(Structure).len]StructureOfArraysDescription.FieldDescription = undefined;
+    for (std.meta.fields(Structure)) |field, i| {
+        descriptions[i].field_type = field.field_type;
+        descriptions[i].name = field.name;
+        descriptions[i].offset = @byteOffsetOf(Structure, field.name);
+    }
+    return StructureOfArraysAdvanced(.{ .input_struct = Structure, .fields = &descriptions });
+}
+
+pub const StructureOfArraysDescription = struct {
+    pub const FieldDescription = struct {
+        field_type: type,
+        name: []const u8,
+        offset: usize,
+    };
+    input_struct: type,
+    fields: []const FieldDescription,
+};
+
+pub fn StructureOfArraysAdvanced(comptime description: StructureOfArraysDescription) type {
     return struct {
-        const fields = std.meta.fields(Structure);
+        const Structure = description.input_struct;
+        const fields = description.fields;
         const maximum_alignment = maximumAlignment(fields);
         const minimum_alignment = minimumAlignment(fields);
         const total_size_fields = totalSize(fields);
@@ -67,7 +85,9 @@ pub fn StructureOfArrays(comptime Structure: type) type {
         const Self = @This();
 
         pub fn init(allocator: *Allocator) Self {
-            //debug.warn("Alignement of storage is {}", usize(@alignOf(Node)));
+            // debug.warn("Max alignement is {}\n", .{maximum_alignment});
+            // debug.warn("Min alignement is {}\n", .{minimum_alignment});
+            // debug.warn("Total size is {}\n", .{total_size_fields});
             return .{
                 .storage = &[_]u8{},
                 .len = 0,
@@ -112,9 +132,7 @@ pub fn StructureOfArrays(comptime Structure: type) type {
             std.debug.assert(self.capacity() > self.len);
             const old_size = self.len;
             self.len = old_size + 1;
-            inline for (fields) |field| {
-                self.set(field.name, old_size, @field(values, field.name));
-            }
+            self.setStructure(old_size, values);
         }
 
         pub fn growCapacity(self: *Self, amount: usize) !void {
@@ -144,20 +162,27 @@ pub fn StructureOfArrays(comptime Structure: type) type {
             }
         }
 
-        pub fn span(self: Self, comptime field_name: []const u8) []findField(field_name, fields).field_type {
-            comptime const FieldType = findField(field_name, fields).field_type;
-            comptime const field_index = fieldIndex(field_name, fields);
+        pub fn span(self: Self, comptime field_name: []const u8) []fieldType(fields, field_name) {
+            comptime const FieldType = fieldType(fields, field_name);
+            comptime const field_index = fieldIndex(fields, field_name);
             comptime const fields_size = totalSize(fields[0..field_index]);
             const start_offset = fields_size * self.capacity();
             return std.mem.bytesAsSlice(FieldType, @alignCast(@alignOf(FieldType), self.storage[start_offset .. start_offset + self.len * @sizeOf(FieldType)]));
         }
 
-        pub fn at(self: Self, comptime field_name: []const u8, index: usize) findField(field_name, fields).field_type {
+        pub fn at(self: Self, comptime field_name: []const u8, index: usize) fieldType(fields, field_name) {
             return self.span(field_name)[index];
         }
 
-        pub fn set(self: Self, comptime field_name: []const u8, index: usize, value: findField(field_name, fields).field_type) void {
+        pub fn set(self: Self, comptime field_name: []const u8, index: usize, value: fieldType(fields, field_name)) void {
             self.span(field_name)[index] = value;
+        }
+
+        pub fn setStructure(self: Self, index: usize, values: Structure) void {
+            const value_bytes = std.mem.asBytes(&values);
+            inline for (fields) |field| {
+                self.set(field.name, index, std.mem.bytesToValue(field.field_type, value_bytes[field.offset .. field.offset + @sizeOf(field.field_type)]));
+            }
         }
 
         pub fn popBack(self: *Self) void {
