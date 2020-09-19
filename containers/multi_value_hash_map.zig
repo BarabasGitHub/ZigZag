@@ -126,7 +126,7 @@ pub fn MultiValueHashMap(comptime Key: type, comptime Values: type, comptime has
 
             fn nextNonEmptyIndex(self: *Iterator) void {
                 var next_index = self.index;
-                while (self.next_nodes[next_index].isEmpty() and next_index != self.index_end) {
+                while (next_index != self.index_end and self.next_nodes[next_index].isEmpty()) {
                     next_index += 1;
                 }
                 self.index = next_index;
