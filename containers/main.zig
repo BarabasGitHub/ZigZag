@@ -10,5 +10,5 @@ pub usingnamespace @import("single_linked_list.zig");
 pub usingnamespace @import("structure_of_arrays.zig");
 
 comptime {
-    @import("std").meta.refAllDecls(@This());
+    @import("std").testing.refAllDecls(@This());
 }

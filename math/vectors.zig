@@ -8,7 +8,7 @@ pub fn Vector2d(comptime T: type) type {
 
         const Self = @This();
         pub const ElementCount = 2;
-        pub const IndexType = std.meta.IntType(false, std.math.log2_int(usize, ElementCount));
+        pub const IndexType = std.meta.IntType(.unsigned, std.math.log2_int(usize, ElementCount));
 
         pub fn initDefault() Self {
             return initUniform(0);

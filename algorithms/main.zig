@@ -4,5 +4,5 @@ pub usingnamespace @import("rotate.zig");
 pub const UnionFind = @import("union_find.zig");
 
 comptime {
-    @import("std").meta.refAllDecls(@This());
+    @import("std").testing.refAllDecls(@This());
 }

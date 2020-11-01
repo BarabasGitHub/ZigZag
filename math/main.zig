@@ -6,5 +6,5 @@ pub usingnamespace @import("statistics.zig");
 pub usingnamespace @import("vectors.zig");
 
 comptime {
-    @import("std").meta.refAllDecls(@This());
+    @import("std").testing.refAllDecls(@This());
 }
